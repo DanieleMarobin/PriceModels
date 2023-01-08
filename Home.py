@@ -17,7 +17,7 @@ df_model_all=gd.read_csv(file_name,parse_dates=['date'], dayfirst=True, index_co
 st.dataframe(df_model_all)
 
 df = px.data.medals_wide(indexed=True)
-fig = px.imshow(df,color_continuous_scale='RdBu_r')
+fig = px.imshow(df,color_continuous_scale='RdBu_r',text_auto=True)
 selected_points = plotly_events(fig)
 
 st.write(selected_points)
