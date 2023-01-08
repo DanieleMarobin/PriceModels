@@ -21,3 +21,4 @@ fig = px.imshow(df,color_continuous_scale='RdBu_r',text_auto=True)
 selected_points = plotly_events(fig)
 
 st.write(selected_points)
+st.plotly_chart(fig)
