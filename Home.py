@@ -19,6 +19,6 @@ st.dataframe(df_model_all)
 df = px.data.medals_wide(indexed=True)
 fig = px.imshow(df,color_continuous_scale='RdBu_r',text_auto=True)
 selected_points = plotly_events(fig)
-
+fig.update_traces(texttemplate= '%{z:.1f}')
 st.write(selected_points)
 st.plotly_chart(fig)
