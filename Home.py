@@ -9,15 +9,15 @@ import GDrive as gd
 
 PM_DIR = 'Data/Models/Price Models/'
 
-st.write('hello')
+file_name = PM_DIR+'df_model_all.csv'
 
-gd.get_credentials()
+df_model_all=gd.read_csv(file_name,parse_dates=['date'], dayfirst=True, index_col='date')
+# df_model_all=gd.read_csv(file_name)
 
+st.dataframe(df_model_all)
 
 df = px.data.medals_wide(indexed=True)
 fig = px.imshow(df,color_continuous_scale='RdBu_r')
-
 selected_points = plotly_events(fig)
-# st.plotly_chart(fig)
 
 st.write(selected_points)
