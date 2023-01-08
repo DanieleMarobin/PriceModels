@@ -45,9 +45,9 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     if transpose:
         heat_map=heat_map.T
-    return heat_map
+    # return heat_map
 
-    fig = px.imshow(heat_map, color_continuous_scale=color_continuous_scale, range_color=range_color,title=title)
+    fig = px.imshow(heat_map, color_continuous_scale=color_continuous_scale, range_color=range_color,title=title,aspect='equal')
 
     if format_labels is not None:
         fig.update_traces(texttemplate=format_labels)

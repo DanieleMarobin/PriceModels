@@ -31,20 +31,20 @@ if True:
     # mask=((model_df.index.month<=4) | (model_df.index.month>=8))
     mask=(model_df.index.month>0)
     months=list(range(1,13))
-    heat_map_df=mp.heat_map_var_months(model_df[mask], y_cols=[y_col], top_n = 10, months=months, parallel=None, show=False)[y_col]
+    heat_map_df=mp.heat_map_var_months(model_df[mask], y_cols=[y_col], top_n = 40, months=months, parallel=None, show=False)[y_col]
 
     c=color_scales['RdBu-sequential']
-    abs_max=heat_map_df['value'].abs().max() # so the positives are Blue and the negatives are red
-    # fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, format_labels = '%{z:.1f}', title=y_col, range_color=(-abs_max,abs_max), tickangle=-90)
-    heat_map=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, format_labels = '%{z:.1f}', title=y_col, range_color=(-abs_max,abs_max), tickangle=-90)
-    # fig = px.imshow(heat_map, color_continuous_scale=color_continuous_scale, range_color=range_color,title=title)  
-    x=['Jan', 'Feb', 'Mar','Apr', 'May', 'Jun','Jul', 'Aug', 'Sep','Oct', 'Nov', 'Dec', 'all']
-    y=['m1', 'm02', 'm03','m04', 'm05', 'm06','m07', 'm08', 'm09','m10']
-
-    heat_map.columns=heat_map.columns
-    heat_map.index=x
-
-    fig = px.imshow(heat_map, color_continuous_scale=c) 
-    selected_points = plotly_events(fig)
-
+    if False:
+        abs_max=heat_map_df['value'].abs().max() # so the positives are Blue and the negatives are red
+        heat_map=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, format_labels = '%{z:.1f}', title=y_col, range_color=(-abs_max,abs_max), tickangle=-90) 
+        x=['Jan', 'Feb', 'Mar','Apr', 'May', 'Jun','Jul', 'Aug', 'Sep','Oct', 'Nov', 'Dec', 'all']
+        heat_map.columns=heat_map.columns
+        heat_map.index=heat_map.index
+        fig = px.imshow(heat_map, color_continuous_scale=c) 
+    else:
+        abs_max=heat_map_df['value'].abs().max() # so the positives are Blue and the negatives are red
+        fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, range_color=(-abs_max,abs_max), tickangle=-90)
+        fig.update_layout(coloraxis_showscale=False)
+        # fig.update_layout(width=700,height=500)
+    selected_points = plotly_events(fig, override_height=750)
     st.write(selected_points)

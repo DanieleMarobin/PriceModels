@@ -19,7 +19,7 @@ if True:
     from itertools import combinations, combinations_with_replacement
 
     import statsmodels.api as sm
-    
+
     import concurrent.futures
     import Charts as uc
     
@@ -170,7 +170,7 @@ if True:
         # cols_to_use=cols_to_use+[c for c in df_model_all.columns] # everything
         cols_to_use=cols_to_use+[c for c in df_model_all.columns if (('price_' in c) & ('security' not in c))] # funds
         # cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'fund' in c] # funds
-        # cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde
+        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde
 
         # shifts columns
         # cols_to_use=cols_to_use+[c for c in cols_to_shift if (('price_' in c) & ('security' not in c))] # all the prices (as one of them will be the 'y_col' to model)
@@ -220,7 +220,6 @@ if True:
 
         return df_model
 
-
 # Results visualization
 if True:
     def heat_map_var_months(model_df, y_cols=['a_price_c '], top_n = 40, months=list(range(1,13)), cols_excluded=[], parallel=None, max_workers=None, show=False):
@@ -247,7 +246,7 @@ if True:
                 mask=(model_df.index.month==m)
 
                 rank_df=sorted_rsquared_var(model_df=model_df[mask][cols_model], y_col=y, n_var=1, cols_excluded=cols_excluded, parallel=None, max_workers=max_workers)
-                rank_df['report']='{:0>2}'.format(m)
+                rank_df['report']= 'M ' + '{:0>2}'.format(m)
                 fo[y].append(rank_df)       
                 
                 print('Month:', m)
