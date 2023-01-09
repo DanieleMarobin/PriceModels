@@ -75,7 +75,8 @@ if True:
     fig=uc.chart_heat_map(heat_map_months,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=False, color_continuous_scale=color_scales['RdBu-sequential'], range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
     fig.update_layout(coloraxis_showscale=False)
     
-    fig.update_layout(xaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
+    fig.update_layout(xaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size),side='top'))
+    # fig.update_layout(xaxis=dict(side='top'))
     fig.update_layout(yaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
 
     # fig.update_layout(width=1500,height=1500)
