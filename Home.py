@@ -14,6 +14,7 @@ if True:
 
 # Preliminaries
 if True:
+    st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     color_scales = uc.get_plotly_colorscales()
     PM_DIR = 'Data/Models/Price Models/'
     file_name = PM_DIR+'df_model_all.csv'
@@ -43,8 +44,14 @@ if True:
         fig = px.imshow(heat_map, color_continuous_scale=c) 
     else:
         abs_max=heat_map_df['value'].abs().max() # so the positives are Blue and the negatives are red
-        fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, range_color=(-abs_max,abs_max), tickangle=-90)
+        # fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}',tickangle=-90)
+        fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
         fig.update_layout(coloraxis_showscale=False)
-        # fig.update_layout(width=700,height=500)
-    selected_points = plotly_events(fig, override_height=750)
+        font_size=8
+        fig.update_layout(xaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
+        fig.update_layout(yaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
+        # fig.update_layout(width=1500,height=1500)
+
+    # st.plotly_chart(fig)
+    selected_points = plotly_events(fig)
     st.write(selected_points)

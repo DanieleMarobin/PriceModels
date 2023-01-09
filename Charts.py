@@ -47,13 +47,14 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
         heat_map=heat_map.T
     # return heat_map
 
-    fig = px.imshow(heat_map, color_continuous_scale=color_continuous_scale, range_color=range_color,title=title,aspect='equal')
+    fig = px.imshow(heat_map, color_continuous_scale=color_continuous_scale, range_color=range_color,title=title, aspect='auto')
 
     if format_labels is not None:
         fig.update_traces(texttemplate=format_labels)
 
     fig.update_yaxes(dtick=1)
-    fig.update_xaxes(dtick=1,tickangle=tickangle)
+    fig.update_xaxes(dtick=1,tickangle=tickangle,automargin=True)
+
     return fig
 
 
