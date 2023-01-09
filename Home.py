@@ -72,7 +72,7 @@ if True:
 
     abs_max=heat_map_months['value'].abs().max() # so the positives are Blue and the negatives are red
 
-    fig=uc.chart_heat_map(heat_map_months,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=color_scales['RdBu-sequential'], range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
+    fig=uc.chart_heat_map(heat_map_months,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=False, color_continuous_scale=color_scales['RdBu-sequential'], range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
     fig.update_layout(coloraxis_showscale=False)
     
     fig.update_layout(xaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
