@@ -169,7 +169,7 @@ if True:
         cols_to_use=[]
         # cols_to_use=cols_to_use+[c for c in df_model_all.columns] # everything
         cols_to_use=cols_to_use+[c for c in df_model_all.columns if (('price_' in c) & ('security' not in c))] # funds
-        # cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'fund' in c] # funds
+        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'fund' in c] # funds
         cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde
 
         # shifts columns
