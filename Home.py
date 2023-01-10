@@ -162,9 +162,9 @@ if True:
         fig.update_layout(legend_title_text=None)
 
         st.plotly_chart(fig)
-        if trendline_scope is not None:
-            all_models=px.get_trendline_results(fig).px_fit_results
-
+        all_models=px.get_trendline_results(fig)
+        if len(all_models)>0:        
+            all_models=all_models.px_fit_results
             legend_items=[]
             for trace in fig.data:
                 if 'OLS trendline' in trace.hovertemplate:
@@ -179,9 +179,9 @@ if True:
         fig.update_layout(legend_title_text=None)
 
         st.plotly_chart(fig)
-        if trendline_scope is not None:
-            all_models=px.get_trendline_results(fig).px_fit_results
-
+        all_models=px.get_trendline_results(fig)
+        if len(all_models)>0:        
+            all_models=all_models.px_fit_results
             legend_items=[]
             for trace in fig.data:
                 if 'OLS trendline' in trace.hovertemplate:
