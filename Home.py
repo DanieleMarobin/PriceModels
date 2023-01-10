@@ -59,14 +59,13 @@ if True:
     font_size = st.sidebar.number_input('HeatMap Font Size',5,20,10,1)
     chart_height = st.sidebar.number_input('HeatMap Chart Height',100,10000,750,100)
     st.sidebar.markdown('---')
-    scatter_type = st.sidebar.radio('Scatter Color',('Continuous','Categorical'))
+    scatter_type = st.sidebar.radio('Scatter Color',('Categorical','Continuous'))
     trendline_scope = st.sidebar.radio('Trendline',('overall','trace', None))
     
     colors=list(color_scales.keys())
     colors.sort()
     chart_color_key = st.sidebar.selectbox('Chart Color',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
     color_list=color_scales[chart_color_key]
-
 
 # Heat-Map
 if True:
@@ -144,12 +143,49 @@ if True:
     color_var_month=df[month_col].astype(as_type)
     color_var_year=df[crop_year_col].astype(as_type)
 
-    st.write(len(df))
+
+    # Chart Labels
+    cols_with_none = ['None','year','report']
+    cols_with_none.extend(df.columns)
+    chart_labels = st.sidebar.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
+
+    if chart_labels=='None':
+        chart_labels=None
+    elif chart_labels=='year':
+        chart_labels=df.index.year
+    elif chart_labels=='report':
+        chart_labels=df.index
 
     with col1:        
-        fig=px.scatter(df,x=x,y=y_col,color=color_var_month, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+        fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+        fig.update_traces(textposition='top center')
+        fig.update_layout(legend_title_text=None)
+
         st.plotly_chart(fig)
+        if trendline_scope is not None:
+            all_models=px.get_trendline_results(fig).px_fit_results
+
+            legend_items=[]
+            for trace in fig.data:
+                if 'OLS trendline' in trace.hovertemplate:
+                    legend_items.append(trace.name)
+
+            for i, tm in enumerate(all_models): # tm: Trendline Model
+                st.write(legend_items[i], 'R-Squared:', str(round(tm.rsquared,3)))
 
     with col2:            
-        fig=px.scatter(df,x=x,y=y_col,color=color_var_year, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+        fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+        fig.update_traces(textposition='top center')
+        fig.update_layout(legend_title_text=None)
+
         st.plotly_chart(fig)
+        if trendline_scope is not None:
+            all_models=px.get_trendline_results(fig).px_fit_results
+
+            legend_items=[]
+            for trace in fig.data:
+                if 'OLS trendline' in trace.hovertemplate:
+                    legend_items.append(trace.name)
+
+            for i, tm in enumerate(all_models): # tm: Trendline Model
+                st.write(legend_items[i], 'R-Squared:', str(round(tm.rsquared,3)))
