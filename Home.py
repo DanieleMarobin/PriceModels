@@ -159,7 +159,7 @@ if True:
     with col1:        
         fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
         fig.update_traces(textposition='top center')
-        fig.update_layout(legend_title_text=None)
+        fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
 
         st.plotly_chart(fig)
         all_models=px.get_trendline_results(fig)
@@ -176,7 +176,8 @@ if True:
     with col2:            
         fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
         fig.update_traces(textposition='top center')
-        fig.update_layout(legend_title_text=None)
+        fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
+        fig.update_layout()
 
         st.plotly_chart(fig)
         all_models=px.get_trendline_results(fig)
