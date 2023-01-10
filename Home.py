@@ -21,17 +21,20 @@ if True:
 
     def apply_func():
         if ('heat_map_months' in st.session_state):
-            del st.session_state['heat_map_months']        
+            del st.session_state['heat_map_months']
 
 # Preliminaries
 if True:
+    if ('all_options' not in st.session_state):
+        st.session_state['all_options']=True
+
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
     st.markdown("---")
-    st.sidebar.markdown("### Price Models")
-
     
-
+    st.sidebar.markdown("### Price Models")
+    color_scales = uc.get_plotly_colorscales()
+    
 # Data
 if True:
     df_model_all=fu.get_data()
@@ -54,11 +57,11 @@ if True:
         st.form_submit_button('Apply',on_click=apply_func)
 
     font_size = st.sidebar.number_input('HeatMap Font Size',5,20,10,1)
-    chart_height = st.sidebar.number_input('HeatMap Chart Height',100,10000,top_n_vars*50,100)
-
-    trendline_scope = st.sidebar.radio('Trendline Scope',('overall','trace', None))
-
-    color_scales = uc.get_plotly_colorscales()
+    chart_height = st.sidebar.number_input('HeatMap Chart Height',100,10000,750,100)
+    st.sidebar.markdown('---')
+    scatter_type = st.sidebar.radio('Scatter Color',('Continuous','Categorical'))
+    trendline_scope = st.sidebar.radio('Trendline',('overall','trace', None))
+    
     colors=list(color_scales.keys())
     colors.sort()
     chart_color_key = st.sidebar.selectbox('Chart Color',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
@@ -74,41 +77,38 @@ if True:
         # st.write('Getting the Monthly heatmap from memory')
         heat_map_months=st.session_state['heat_map_months']
     else:
-        # st.write('Calculating the Monthly heatmap')
-        st.session_state['heat_map_months']=mp.heat_map_var_months(model_df[mask], y_cols=[y_col], top_n = top_n_vars, months=months, parallel=None, show=False)[y_col]
-        heat_map_months=st.session_state['heat_map_months']
+        with st.spinner('Calculating the Monthly heatmap for top '+str(top_n_vars) + ' variables...'):
+            st.session_state['heat_map_months']=mp.heat_map_var_months(model_df[mask], y_cols=[y_col], top_n = top_n_vars, months=months, parallel=None, show=False)[y_col]
+            heat_map_months=st.session_state['heat_map_months']
 
     abs_max=heat_map_months['value'].abs().max() # so the positives are Blue and the negatives are red
 
-    fig=uc.chart_heat_map(heat_map_months,title=y_col, x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=False, color_continuous_scale=color_scales['RdBu-sequential'], range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
-    fig.update_layout(coloraxis_showscale=False)
-    fig.update_layout(xaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size),side='top'))
-    fig.update_layout(yaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
+    fig=uc.chart_heat_map(heat_map_months,title=y_col, x_col='report',y_col='v1',z_col='value', sort_by='all_abs', transpose=False, color_continuous_scale=color_scales['RdBu-sequential'], range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
 
+    fig.update_layout(coloraxis_showscale=False, xaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size),side='top'),yaxis=dict(titlefont=dict(size=font_size),tickfont=dict(size=font_size)))
+    
     selected_points = plotly_events(fig, override_height=chart_height)
     
 # Scatter Plots
 if True:
     if len(selected_points)==0: st.stop()
 
-    print(selected_points)
     x=selected_points[0]['y']        
 
     mask=(model_df.index.month>0)
-    # mask=((model_df.index.month>=5) & (model_df.index.month<=7))
-
     df=model_df[mask]
-    # df_check=pd.concat([df[y],df[v]],axis=1)
 
-    # fig=px.scatter(df_check,x=v,y=y, trendline='ols',text=df.index)
-    c=color_scales['Jet-sequential']
-
+    month_col='month'
+    df[month_col]=df.index.month
+    
     col1, col2 = st.columns([1,1])
-    with col1:
+    with col1:        
         st.markdown('#### Month Split')
         st.markdown('---')        
-        all_options = st.checkbox("All Months",True)
-        options=list(set(df.index.month.astype('str'))); options.sort()
+        all_options = st.checkbox("All Months", True)
+
+        options=list(set(df[month_col].astype('int')))
+        options.sort()
 
         if all_options:
             sel_months = st.multiselect( 'Months', options, options)
@@ -119,8 +119,10 @@ if True:
         crop_year_col='wasde_us corn nc-crop year-'
         st.markdown('#### Crop Year Split')
         st.markdown('---')
-        all_options = st.checkbox("All Years",True)
-        options=list(set(df[crop_year_col].astype('int').astype('str'))); options.sort()
+        all_options = st.checkbox("All Years", True)
+
+        options=list(set(df[crop_year_col].astype('int')))
+        options.sort()
 
         if all_options:
             sel_years = st.multiselect('Years', options, options)
@@ -130,16 +132,24 @@ if True:
     col1, col2 = st.columns([1,1])
     if ((len(sel_months)==0) | (len(sel_years)==0)): st.stop()
 
-    mask = np.isin(model_df.index.month.astype('str'),sel_months)
-    mask = ((mask) & (np.isin(model_df[crop_year_col].astype('int').astype('str'),sel_years)))
+    mask = np.isin(df[month_col].astype('int'), sel_months)
+    mask = ((mask) & (np.isin(df[crop_year_col].astype('int'),sel_years)))
+    df=df[mask]
 
-    df=model_df[mask]
-    with col1:
-        color_var=df.index.month.astype('str')
-        fig=px.scatter(df,x=x,y=y_col,color=color_var, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+    if scatter_type=='Categorical':
+        as_type='str'
+    else:
+        as_type='int'
+
+    color_var_month=df[month_col].astype(as_type)
+    color_var_year=df[crop_year_col].astype(as_type)
+
+    st.write(len(df))
+
+    with col1:        
+        fig=px.scatter(df,x=x,y=y_col,color=color_var_month, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
         st.plotly_chart(fig)
 
-    with col2:    
-        color_var=df[crop_year_col].astype('int').astype('str')
-        fig=px.scatter(df,x=x,y=y_col,color=color_var, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list) #, color_discrete_sequence=c, color_continuous_scale=c
+    with col2:            
+        fig=px.scatter(df,x=x,y=y_col,color=color_var_year, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
         st.plotly_chart(fig)

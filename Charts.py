@@ -25,7 +25,13 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
         heat_map['mean']=heat_map.mean(axis=1)
 
     if sort_by is not None:
-        heat_map=heat_map.sort_values(by=sort_by, ascending=False)
+        if (('_abs' in sort_by) & (sort_by not in heat_map.columns)):
+            sort_var=sort_by.split('_')[0]
+            heat_map[sort_by]=heat_map[sort_var].abs()
+            heat_map=heat_map.sort_values(by=sort_by, ascending=False)
+            heat_map=heat_map.drop(columns=[sort_by])
+        else:
+            heat_map=heat_map.sort_values(by=sort_by, ascending=False)
 
     if simmetric_sort:
         sorted_cols = list(heat_map.index)
