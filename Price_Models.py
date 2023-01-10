@@ -120,7 +120,6 @@ def sorted_rsquared_var(model_df, y_col='y', n_var=1, with_replacement=False, co
         comb = combinations_with_replacement(cols_model, n_var)
 
     x_cols_list = [list(c) for c in comb] # converting 'list of tuples' to 'list of lists' 
-
     models_results=run_multiple_models(df=model_df, y_col=y_col, x_cols_list=x_cols_list, extract_only=None, parallel=parallel, max_workers=max_workers)
 
     # Visualize with the heat map
@@ -226,8 +225,7 @@ if True:
         """
         1 'heat_map' for each item in 'y_cols'
         """
-        fo={}
-        color_scales = uc.get_plotly_colorscales()
+        fo={}        
         for y in y_cols:
             fo[y]=[]
             # Calculating the 'Top N Variables'
@@ -257,6 +255,7 @@ if True:
             heat_map_df=heat_map_df[mask]
 
             if show:
+                color_scales = uc.get_plotly_colorscales()
                 # Heat-Map
                 c=color_scales['RdBu-sequential']
                 abs_max=heat_map_df['value'].abs().max() # so the positives are Blue and the negatives are red

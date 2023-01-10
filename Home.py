@@ -7,6 +7,7 @@ if True:
     import streamlit as st
     import plotly.express as px
     from streamlit_plotly_events import plotly_events
+    # from streamlit_tags import st_tags
 
     import Price_Models as mp
     import GDrive as gd
@@ -19,21 +20,20 @@ if True:
         if ('df_model_all' in st.session_state):
             del st.session_state['df_model_all']
 
-    def apply_func():
+    def func_calculate():
         if ('heat_map_months' in st.session_state):
             del st.session_state['heat_map_months']
 
-# Preliminaries
-if True:
-    if ('all_options' not in st.session_state):
-        st.session_state['all_options']=True
 
+# Preliminaries
+if True:    
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
     st.markdown("---")
     
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
+    crop_year_col='wasde_us corn nc-crop year-'
     
 # Data
 if True:
@@ -43,18 +43,43 @@ if True:
 
 # Filters and Settings
 if True:
-    st.sidebar.button('Get Latest File', on_click=func_reset)
-
-    with st.sidebar.form('run'):        
+    col1, col2, col3, col4 = st.columns([1,3,0.5,0.5])
+    with col1:
         options = list(model_df.columns)
-        # options.sort()
-        y_col = st.selectbox('Variable to Model',options, options.index('a_price_c '))
+        y_col = st.selectbox('Target',options, options.index('a_price_c '))
 
-        # Top N Variables
+    with col2:
+        special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
+        options=special_vars[:]
+        options=options+list(model_df.columns)
+        x_cols = st.multiselect('Selected Variables', options, ['All-Stock to use'])
+        
+        if 'All' in x_cols:
+            x_cols=x_cols+list(model_df.columns)
+        if 'All-Stock to use' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'stock to use' in c]
+        if 'All-Ending Stocks' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'ending stock' in c]
+        if 'All-Yields' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]            
+
+        x_cols = list(set(x_cols)-set(special_vars))
+        with st.expander(str(len(x_cols)) + ' of ' + str(len(model_df.columns))):
+            st.write(x_cols)
+
+        # Adding cols needed to function
+        x_cols=x_cols+[y_col, crop_year_col]
+        x_cols = list(set(x_cols)-set(special_vars))
+
+    with col3:
         top_n_vars = st.number_input('Top N Variables',1,10000,20,1)
 
-        # Form Submit Button
-        st.form_submit_button('Apply',on_click=apply_func)
+    with col4:
+        st.markdown('##')
+        st.button('Calculate', on_click=func_calculate)
+
+    st.markdown('---')
+    st.sidebar.button('Get Latest File', on_click=func_reset)
 
     font_size = st.sidebar.number_input('HeatMap Font Size',5,20,10,1)
     chart_height = st.sidebar.number_input('HeatMap Chart Height',100,10000,750,100)
@@ -62,10 +87,16 @@ if True:
     scatter_type = st.sidebar.radio('Scatter Color',('Categorical','Continuous'))
     trendline_scope = st.sidebar.radio('Trendline',('overall','trace', None))
     
+    chart_labels=st.sidebar.container()
+
     colors=list(color_scales.keys())
     colors.sort()
     chart_color_key = st.sidebar.selectbox('Chart Color',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
     color_list=color_scales[chart_color_key]
+
+# Get selected Variables (x_cols)
+if True:
+    model_df=model_df[x_cols]
 
 # Heat-Map
 if True:
@@ -114,8 +145,7 @@ if True:
         else:
             sel_months = st.multiselect( 'Months', options)
 
-    with col2:
-        crop_year_col='wasde_us corn nc-crop year-'
+    with col2:        
         st.markdown('#### Crop Year Split')
         st.markdown('---')
         all_options = st.checkbox("All Years", True)
@@ -147,7 +177,7 @@ if True:
     # Chart Labels
     cols_with_none = ['None','year','report']
     cols_with_none.extend(df.columns)
-    chart_labels = st.sidebar.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
+    chart_labels = chart_labels.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
 
     if chart_labels=='None':
         chart_labels=None
