@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 
 
-def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=False, sort_by=None, abs=False, subtract=None, simmetric_sort=False, transpose=False, drop_cols=[], color_continuous_scale='RdBu', format_labels=None, title=None,tickangle=None):
+def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=False, sort_by=None, abs=False, subtract=None, simmetric_sort=False, transpose=False, drop_cols=[], color_continuous_scale='RdBu', format_labels=None, title=None,tickangle=None, sorted_cols=[]):
     """
         heat_map_df: it must have 3 columns, to be able to have x,y, and values to put into the heat matrix
 
@@ -51,8 +51,9 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     if transpose:
         heat_map=heat_map.T
-    # return heat_map
 
+    if len(sorted_cols)>0:
+        heat_map=heat_map[sorted_cols]
     fig = px.imshow(heat_map, color_continuous_scale=color_continuous_scale, range_color=range_color,title=title, aspect='auto')
 
     if format_labels is not None:
