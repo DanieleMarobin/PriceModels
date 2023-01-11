@@ -185,68 +185,68 @@ if True:
 
     # selected_points = plotly_events(fig, override_height=hm_height)    
 # Scatter Plots
-if False:
-    for x in x_cols:
-        mask=(model_df.index.month>0)
-        df=model_df[mask]
+if True:
+    mask=(model_df.index.month>0)
+    df=model_df[mask]
 
-        month_col='month'
-        df[month_col]=df.index.month
-        
-        col1, col2 = st.columns([1,1])
-        with col1:        
-            st.markdown('#### Month Split')
-            st.markdown('---')        
-            all_options = st.checkbox("All Months", True)
+    month_col='month'
+    df[month_col]=df.index.month
+    
+    col1, col2 = st.columns([1,1])
+    with col1:        
+        st.markdown('#### Month Split')
+        st.markdown('---')        
+        all_options = st.checkbox("All Months", True)
 
-            options=list(set(df[month_col].astype('int')))
-            options.sort()
+        options=list(set(df[month_col].astype('int')))
+        options.sort()
 
-            if all_options:
-                sel_months = st.multiselect( 'Months', options, options)
-            else:
-                sel_months = st.multiselect( 'Months', options)
-
-        with col2:        
-            st.markdown('#### Crop Year Split')
-            st.markdown('---')
-            all_options = st.checkbox("All Years", True)
-
-            options=list(set(df[crop_year_col].astype('int')))
-            options.sort()
-
-            if all_options:
-                sel_years = st.multiselect('Years', options, options)
-            else:
-                sel_years = st.multiselect('Years', options)
-
-        col1, col2 = st.columns([1,1])
-        if ((len(sel_months)==0) | (len(sel_years)==0)): st.stop()
-
-        mask = np.isin(df[month_col].astype('int'), sel_months)
-        mask = ((mask) & (np.isin(df[crop_year_col].astype('int'),sel_years)))
-        df=df[mask]
-
-        if scatter_type=='Categorical':
-            as_type='str'
+        if all_options:
+            sel_months = st.multiselect( 'Months', options, options)
         else:
-            as_type='int'
+            sel_months = st.multiselect( 'Months', options)
 
-        color_var_month=df[month_col].astype(as_type)
-        color_var_year=df[crop_year_col].astype(as_type)
+    with col2:        
+        st.markdown('#### Crop Year Split')
+        st.markdown('---')
+        all_options = st.checkbox("All Years", True)
 
-        # Chart Labels
-        cols_with_none = ['None','year','report']
-        cols_with_none.extend(df.columns)
-        chart_labels = chart_labels.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
+        options=list(set(df[crop_year_col].astype('int')))
+        options.sort()
 
-        if chart_labels=='None':
-            chart_labels=None
-        elif chart_labels=='year':
-            chart_labels=df.index.year
-        elif chart_labels=='report':
-            chart_labels=df.index
+        if all_options:
+            sel_years = st.multiselect('Years', options, options)
+        else:
+            sel_years = st.multiselect('Years', options)
 
+    col1, col2 = st.columns([1,1])
+    if ((len(sel_months)==0) | (len(sel_years)==0)): st.stop()
+
+    mask = np.isin(df[month_col].astype('int'), sel_months)
+    mask = ((mask) & (np.isin(df[crop_year_col].astype('int'),sel_years)))
+    df=df[mask]
+
+    if scatter_type=='Categorical':
+        as_type='str'
+    else:
+        as_type='int'
+
+    color_var_month=df[month_col].astype(as_type)
+    color_var_year=df[crop_year_col].astype(as_type)
+
+    # Chart Labels
+    cols_with_none = ['None','year','report']
+    cols_with_none.extend(df.columns)
+    chart_labels = chart_labels.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
+
+    if chart_labels=='None':
+        chart_labels=None
+    elif chart_labels=='year':
+        chart_labels=df.index.year
+    elif chart_labels=='report':
+        chart_labels=df.index
+
+    for x in x_cols:
         with col1:        
             fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
             fig.update_traces(textposition='top center')
