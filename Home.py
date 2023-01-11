@@ -252,7 +252,7 @@ if True:
             fig.update_traces(textposition='top center')
             fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
 
-            st.plotly_chart(fig)
+            st.plotly_chart(fig,use_container_width=True)
             all_models=px.get_trendline_results(fig)
             if len(all_models)>0:        
                 all_models=all_models.px_fit_results
@@ -268,9 +268,8 @@ if True:
             fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
             fig.update_traces(textposition='top center')
             fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
-            fig.update_layout()
 
-            st.plotly_chart(fig)
+            st.plotly_chart(fig,use_container_width=True)
             all_models=px.get_trendline_results(fig)
             if len(all_models)>0:        
                 all_models=all_models.px_fit_results
