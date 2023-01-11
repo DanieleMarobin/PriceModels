@@ -9,6 +9,7 @@ import inspect
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+from plotly.subplots import make_subplots
 
 
 def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=False, sort_by=None, abs=False, subtract=None, simmetric_sort=False, transpose=False, drop_cols=[], color_continuous_scale='RdBu', format_labels=None, title=None,tickangle=None, sorted_cols=[]):
@@ -64,7 +65,30 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     return fig
 
+def scatter_matrix_chart(df):
+    cols=list(df.columns)
+    fig = make_subplots(rows=len(cols), cols=len(cols), shared_xaxes=True, shared_yaxes=True)
+    mode='markers'
+    marker_size=2
 
+    for ri, yc in enumerate(cols):
+        for ci, xc in enumerate(cols):
+            rr=ri+1
+            cc=ci+1
+            fig.add_trace(go.Scatter(x=df[xc], y=df[yc], mode=mode,marker=dict(size=marker_size)), row=rr, col=cc)
+            
+            fig.update_xaxes(row=rr, col=cc, showgrid=False,zeroline=False)
+            if rr==len(cols):
+                tick_pos=(df[xc].max()+df[xc].min())/2.0
+                fig.update_xaxes(row=rr, col=cc, tickangle=90,automargin=True,tickvals=[tick_pos],ticktext=[xc], showgrid=False,zeroline=False)
+
+            fig.update_yaxes(row=rr, col=cc, showgrid=False,zeroline=False)
+            if cc==1:
+                tick_pos=(df[yc].max()+df[yc].min())/2.0
+                fig.update_yaxes(row=rr, col=cc, tickangle=0,automargin=True,tickvals=[tick_pos],ticktext=[yc],showgrid=False,zeroline=False)
+
+    fig.update_layout(showlegend=False)
+    return fig
 
 def get_plotly_colorscales():
     """

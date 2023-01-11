@@ -6,8 +6,7 @@ if True:
     import pandas as pd
     import streamlit as st
     import plotly.express as px
-    from streamlit_plotly_events import plotly_events
-    # from streamlit_tags import st_tags
+    # from streamlit_plotly_events import plotly_events
 
     import Price_Models as mp
     import GDrive as gd
@@ -124,7 +123,7 @@ if True:
             x_cols=list(x_cols[0:top_n_vars])            
 
             # Adding cols needed to function
-            x_cols=x_cols+[y_col]
+            x_cols=[y_col]+x_cols
             st.session_state['x_cols']=x_cols
     
     model_df=model_df[x_cols]
@@ -132,28 +131,40 @@ if True:
 # Scatter Matrix
 if True:
     df=model_df[:]
-    
-    df['variables']=np.nan
-    sort_cols=['variables',y_col]
-    sort_cols=sort_cols+[c for c in df.columns if ((c !='variables') & (c !=y_col))]
-    df=df[sort_cols]
-    df.columns=[c.replace('_','<br />').replace('-','<br />') for c in df.columns]
+    # df['variables']=np.nan
+    # sort_cols=['variables',y_col]
+    # sort_cols=sort_cols+[c for c in df.columns if ((c !='variables') & (c !=y_col))]
+    # df=df[sort_cols]
 
-    fig = px.scatter_matrix(df, height=sm_height)
+    # if False:
+    #     df.columns=[c.replace('_','<br />').replace('-','<br />') for c in df.columns]
 
-    fig.update_traces(marker=dict(size=1, line=dict(width=2)))
-    fig.update_traces(diagonal_visible=False)
+    #     fig = px.scatter_matrix(df, height=sm_height)
 
-    fig.update_layout({"xaxis"+str(i+1): dict(showgrid=False,visible=False, anchor='free',position=1,titlefont=dict(size=sm_font_size), showticklabels=False,automargin=True,side='bottom') for i in range(1)})
-    if sm_x_diagonal:
-        fig.update_layout({"xaxis"+str(i+1): dict(zeroline=False,showgrid=False,visible=True, anchor='free',position=1-(i+sm_offset/100)/len(df.columns),titlefont=dict(size=sm_font_size), showticklabels=False,automargin=True,side='top') for i in range(1,len(df.columns))})
-    else:
-        fig.update_layout({"xaxis"+str(i+1): dict(zeroline=False,showgrid=False,visible=True, anchor='free',position=1-(sm_offset/100)/len(df.columns),titlefont=dict(size=sm_font_size), showticklabels=False,automargin=True,side='top') for i in range(1,len(df.columns))})
+    #     fig.update_traces(marker=dict(size=1, line=dict(width=2)))
+    #     fig.update_traces(diagonal_visible=False)
 
-    fig.update_layout({"yaxis"+str(i+1): dict(showgrid=False,visible=False,titlefont=dict(size=sm_font_size),showticklabels=False,automargin=True,side='left') for i in range(1)})
-    fig.update_layout({"yaxis"+str(i+1): dict(anchor='free',position=(sm_offset/100)/len(df.columns),zeroline=False,showgrid=False,visible=True,titlefont=dict(size=sm_font_size),showticklabels=False,automargin=True,side='left') for i in range(1,len(df.columns))})
+    #     fig.update_layout({"xaxis"+str(i+1): dict(showgrid=False,visible=False, anchor='free',position=1,titlefont=dict(size=sm_font_size), showticklabels=False,automargin=True,side='bottom') for i in range(1)})
+    #     if sm_x_diagonal:
+    #         fig.update_layout({"xaxis"+str(i+1): dict(zeroline=False,showgrid=False,visible=True, anchor='free',position=1-(i+sm_offset/100)/len(df.columns),titlefont=dict(size=sm_font_size), showticklabels=False,automargin=True,side='top') for i in range(1,len(df.columns))})
+    #     else:
+    #         fig.update_layout({"xaxis"+str(i+1): dict(zeroline=False,showgrid=False,visible=True, anchor='free',position=1-(sm_offset/100)/len(df.columns),titlefont=dict(size=sm_font_size), showticklabels=False,automargin=True,side='top') for i in range(1,len(df.columns))})
 
-    st.plotly_chart(fig,use_container_width=True)
+    #     fig.update_layout({"yaxis"+str(i+1): dict(showgrid=False,visible=False,titlefont=dict(size=sm_font_size),showticklabels=False,automargin=True,side='left') for i in range(1)})
+    #     fig.update_layout({"yaxis"+str(i+1): dict(anchor='free',position=(sm_offset/100)/len(df.columns),zeroline=False,showgrid=False,visible=True,titlefont=dict(size=sm_font_size),showticklabels=False,automargin=True,side='left') for i in range(1,len(df.columns))})
+
+    #     st.plotly_chart(fig,use_container_width=True)
+
+    # if False:
+    #     fig = sns.pairplot(df)
+    #     st.pyplot(fig)
+
+    if True:
+        fig = uc.scatter_matrix_chart(df)
+        fig.update_layout(height=sm_height)
+        st.plotly_chart(fig,use_container_width=True)
+
+
 
 # Heat-Map
 if True:
