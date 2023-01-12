@@ -162,23 +162,27 @@ if True:
         # Shifts
         cols_to_shift=[]
         # cols_to_shift=cols_to_shift+[c for c in df_model_all.columns if 'price_' in c]
-        cols_to_shift=cols_to_shift+[c for c in df_model_all.columns if 'fund' in c]
+        # cols_to_shift=cols_to_shift+[c for c in df_model_all.columns if 'fund' in c]
 
         # Columns to use
         cols_to_use=[]
+        cols_to_use=cols_to_use+['date','crop_year']
         # cols_to_use=cols_to_use+[c for c in df_model_all.columns] # everything
-        cols_to_use=cols_to_use+[c for c in df_model_all.columns if (('price_' in c) & ('security' not in c))] # funds
+        cols_to_use=cols_to_use+[c for c in df_model_all.columns if (('price_' in c) & ('security' not in c))]
         cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'fund' in c] # funds
-        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde
-
-        # shifts columns
+        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde        
         # cols_to_use=cols_to_use+[c for c in cols_to_shift if (('price_' in c) & ('security' not in c))] # all the prices (as one of them will be the 'y_col' to model)
         # cols_to_use=cols_to_use+[c+'_shift1' for c in cols_to_shift if 'security' not in c] # shif1 columns
 
+        # Expressions
+        expressions=[]
+        expressions=expressions+[{'symbols':['k_price_c ','n_price_c '],'expression':'k_price_c -n_price_c '}]        
+        
         fo['first_training_date']=first_training_date
         fo['last_training_date']=last_training_date
         fo['cols_to_shift']=list(set(cols_to_shift))
         fo['cols_to_use']=list(set(cols_to_use))
+        fo['expressions']=expressions
 
         return fo
 
@@ -191,6 +195,13 @@ if True:
         last_training_date=instructions['last_training_date']
         cols_to_shift=instructions['cols_to_shift']
         cols_to_use=instructions['cols_to_use']
+
+        # Additional Columns
+        df_model_all['date']=df_model_all.index
+        df_model_all['crop_year']=df_model_all['wasde_us corn nc-crop year-']
+
+        # Expressions
+        df_model_all=evaluate_expressions(df_model_all, instructions['expressions'])
 
         # Adding Shifts
         dfs=[df_model_all]
@@ -219,6 +230,12 @@ if True:
 
         return df_model
 
+    def evaluate_expressions(df, expressions):
+        for e in expressions:
+            col=e['expression']
+            legs=e['symbols']
+            df[col]=df[legs[0]]-df[legs[1]]
+        return df
 # Results visualization
 if True:
     def heat_map_var_months(model_df, y_cols=['a_price_c '], top_n = 40, months=list(range(1,13)), cols_excluded=[], parallel=None, max_workers=None, show=False):
