@@ -7,9 +7,11 @@
 from datetime import datetime as dt
 import inspect
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+import statsmodels.api as sm
 
 
 def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=False, sort_by=None, abs=False, subtract=None, simmetric_sort=False, transpose=False, drop_cols=[], color_continuous_scale='RdBu', format_labels=None, title=None,tickangle=None, sorted_cols=[]):
@@ -65,28 +67,65 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     return fig
 
-def scatter_matrix_chart(df):
+def scatter_matrix_chart(df, add_trendline=True, add_r_squared=True, vertical_spacing=0.03, horizontal_spacing=0.01):
     cols=list(df.columns)
-    fig = make_subplots(rows=len(cols), cols=len(cols), shared_xaxes=True, shared_yaxes=True)
+
+    if add_r_squared:
+        titles=['title ' + str(i) for i in range(len(cols)*len(cols))]
+    else:
+        titles=[]
+
+    fig = make_subplots(rows=len(cols), cols=len(cols), shared_xaxes=True, shared_yaxes=True, subplot_titles=titles, vertical_spacing=vertical_spacing, horizontal_spacing=horizontal_spacing)
     mode='markers'
     marker_size=2
-
+    anno_count=0
     for ri, yc in enumerate(cols):
         for ci, xc in enumerate(cols):
             rr=ri+1
             cc=ci+1
-            fig.add_trace(go.Scatter(x=df[xc], y=df[yc], mode=mode,marker=dict(size=marker_size)), row=rr, col=cc)
-            
+
+            x=df[xc]
+            y=df[yc]
+
+            date_format = "%d %B %Y"
+            y_str = 'Y: '+ yc +' %{y:.2f}'
+            x_str = 'X: '+ xc +' %{x:.2f}'            
+            text=[]
+            if xc=='date':
+                text = [d.strftime(date_format) for d in [dt.fromordinal(i) for i in x]]
+                x_str='X: %{text}'
+
+            if yc=='date':
+                text = [d.strftime(date_format) for d in [dt.fromordinal(i) for i in y]]
+                y_str='Y: %{text}'
+
+            hovertemplate="<br>".join([y_str, x_str, "<extra></extra>"])
+
+            fig.add_trace(go.Scatter(x=x, y=y, mode=mode,marker=dict(size=marker_size),hovertemplate=hovertemplate,text=text), row=rr, col=cc)
+                        
             fig.update_xaxes(row=rr, col=cc, showgrid=False,zeroline=False)
             if rr==len(cols):
-                tick_pos=(df[xc].max()+df[xc].min())/2.0
+                tick_pos=(x.max()+x.min())/2.0
                 fig.update_xaxes(row=rr, col=cc, tickangle=90,automargin=True,tickvals=[tick_pos],ticktext=[xc], showgrid=False,zeroline=False)
 
             fig.update_yaxes(row=rr, col=cc, showgrid=False,zeroline=False)
             if cc==1:
-                tick_pos=(df[yc].max()+df[yc].min())/2.0
+                tick_pos=(y.max()+y.min())/2.0
                 fig.update_yaxes(row=rr, col=cc, tickangle=0,automargin=True,tickvals=[tick_pos],ticktext=[yc],showgrid=False,zeroline=False)
 
+            if ((add_trendline) | (add_r_squared)):
+                model = sm.OLS(y.values, sm.add_constant(x.values), missing="drop").fit()
+                r_sq=str(round(model.rsquared,3))
+                hovertemplate="<br>".join(['R-Squared', r_sq, "<extra></extra>"])
+
+                if add_trendline:
+                    fig.add_trace(go.Scatter(x=x, y=model.predict(), mode='lines',hovertemplate=hovertemplate, line=dict(color='black', width=0.5)), row=rr, col=cc)
+
+                if add_r_squared:
+                    fig.layout.annotations[anno_count].update(text="R-sq = "+r_sq)
+                    anno_count+=1
+    
+    # fig.layout.annotations[1].update(text="Stackoverflow",font=dict(size=12))
     fig.update_layout(showlegend=False)
     return fig
 

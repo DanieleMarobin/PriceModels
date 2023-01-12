@@ -34,6 +34,10 @@ if True:
     def disable_analysis():
         st.session_state['run_analysis']=False
 
+    def del_sm():
+         if ('scatter_matrix' in st.session_state):
+            del st.session_state['scatter_matrix']
+
 # Preliminaries
 if True:
     if 'run_analysis' not in st.session_state:
@@ -50,8 +54,7 @@ if True:
 if True:
     df_model_all=fu.get_data()
     model_df_instr=mp.model_df_instructions(df_model_all)
-    model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
-    model_df['date'] = pd.to_numeric(model_df['date'])    
+    model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)    
 
 # Filters and Settings
 if True:
@@ -101,15 +104,19 @@ if True:
 
         if sm_analysis:
             with st.expander('Scatter Matrix Settings'):
-                sm_height = st.number_input('Scatter Matrix Height',100,100000,750,100)
-                sm_x_diagonal = st.checkbox('X Axis on diagonal',True)
-                sm_offset = st.number_input('Scatter Matrix Labels Offset',0,1000,50,10)
-                sm_font_size = st.number_input('Scatter Matrix Font Size',5,20,12,1)
+                sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)
+                sm_r_squared = st.checkbox('Add R-Squared',True,on_change=del_sm)
+
+                sm_height = st.number_input('Height',100,100000,750,100)
+                sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.02,0.01,on_change=del_sm)
+                sm_hor = st.number_input('Horizontal Spacing',0.0,1.0,0.01,0.01,on_change=del_sm)
+                sm_marker_size = st.number_input('Marker Size',1,100,2,1)
+                sm_font_size = st.number_input('Font Size',1,20,12,1)
 
         if hm_analysis:
             with st.expander('Heat Map Settings'):
-                hm_height = st.number_input('HeatMap Chart Height',100,100000,750,100)
-                hm_font_size = st.number_input('HeatMap Font Size',5,20,10,1)
+                hm_height = st.number_input('Height',100,100000,750,100)
+                hm_font_size = st.number_input('Font Size',1,20,10,1)
 
         if sp_analysis:
             with st.expander('Scatter Plots Settings'):
@@ -152,10 +159,14 @@ if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
     else:
         with st.spinner('Calculating the Scatter Matrix...'):
             df=model_df[[y_col]+x_cols]
-            st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df)
+            st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df,sm_trendline,sm_r_squared,sm_vert,sm_hor)
             fig=st.session_state['scatter_matrix']
             
     fig.update_layout(height=sm_height)
+
+    fig.for_each_trace(lambda trace: trace.update(marker={'size': sm_marker_size}))
+
+    fig.for_each_annotation(lambda anno: anno.update(font=dict(size=sm_font_size)))
     fig.for_each_xaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
     fig.for_each_yaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
 
@@ -164,16 +175,14 @@ if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
 
 # Heat-Map
 if ((hm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
-    df=model_df[[y_col]+x_cols]
-    mask=(df.index.month>0)
-    months=list(range(1,13))
-
     if ('heat_map_months' in st.session_state):
         # st.write('Getting the Monthly heatmap from memory')
         heat_map_months=st.session_state['heat_map_months']
     else:
         with st.spinner('Calculating the Monthly heatmap for top '+str(top_n_vars) + ' variables...'):
-            st.session_state['heat_map_months']=mp.heat_map_var_months(df[mask], y_cols=[y_col], top_n = top_n_vars, months=months, parallel=None, show=False)[y_col]
+            df=model_df[[y_col]+x_cols]
+            months=list(range(1,13))
+            st.session_state['heat_map_months']=mp.heat_map_var_months(df, y_cols=[y_col], top_n = top_n_vars, months=months, parallel=None, show=False)[y_col]
             heat_map_months=st.session_state['heat_map_months']
 
     abs_max=heat_map_months['value'].abs().max() # so the positives are Blue and the negatives are red
@@ -194,15 +203,12 @@ if ((hm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
 # Scatter Plots
 if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
     mask=(model_df.index.month>0)
-    df=model_df[mask]
-    crop_year_col='crop_year'
-    month_col='month'
-
-    # if 'date' in x_cols:
-    #     df['date']=pd.to_datetime(df['date'])
-
-    df[month_col]=df.index.month
     
+    crop_year_col='crop_year'
+    month_col='month'    
+
+    df=model_df.loc[mask][x_cols+[y_col,crop_year_col,month_col]]
+
     col_m_sel, col_y_sel = st.columns([1,1])
     with col_m_sel:        
         st.markdown('#### Month Split')
