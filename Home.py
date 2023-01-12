@@ -6,7 +6,7 @@ if True:
     import pandas as pd
     import streamlit as st
     import plotly.express as px
-    # from streamlit_plotly_events import plotly_events
+    import plotly.graph_objects as go
 
     import Price_Models as mp
     import GDrive as gd
@@ -54,7 +54,9 @@ if True:
 if True:
     df_model_all=fu.get_data()
     model_df_instr=mp.model_df_instructions(df_model_all)
-    model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)    
+    model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
+    today_index=model_df.index[-1]
+    st.write('today_index',today_index)
 
 # Filters and Settings
 if True:
@@ -202,69 +204,74 @@ if ((hm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
 
 # Scatter Plots
 if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
-    mask=(model_df.index.month>0)
-    
-    crop_year_col='crop_year'
-    month_col='month'    
+    # Settings
+    if True:
+        mask=(model_df.index.month>0)
+        
+        crop_year_col='crop_year'
+        month_col='month'    
 
-    df=model_df.loc[mask][x_cols+[y_col,crop_year_col,month_col]]
+        df=model_df.loc[mask][x_cols+[y_col,crop_year_col,month_col]]
 
-    col_m_sel, col_y_sel = st.columns([1,1])
-    with col_m_sel:        
-        st.markdown('#### Month Split')
-        st.markdown('---')        
-        all_options = st.checkbox("All Months", True)
+        col_m_sel, col_y_sel = st.columns([1,1])
+        with col_m_sel:        
+            st.markdown('#### Month Split')
+            st.markdown('---')        
+            all_options = st.checkbox("All Months", True)
 
-        options=list(set(df[month_col].astype('int')))
-        options.sort()
+            options=list(set(df[month_col].astype('int')))
+            options.sort()
 
-        if all_options:
-            sel_months = st.multiselect( 'Months', options, options)
+            if all_options:
+                sel_months = st.multiselect( 'Months', options, options)
+            else:
+                sel_months = st.multiselect( 'Months', options)
+        with col_y_sel:        
+            st.markdown('#### Crop Year Split')
+            st.markdown('---')
+            all_options = st.checkbox("All Years", True)
+
+            options=list(set(df[crop_year_col].astype('int')))
+            options.sort()
+
+            if all_options:
+                sel_years = st.multiselect('Years', options, options)
+            else:
+                sel_years = st.multiselect('Years', options)
+
+        col_m_chart, col_y_chart = st.columns([1,1])
+        if ((len(sel_months)==0) | (len(sel_years)==0)): st.stop()
+
+        mask = np.isin(df[month_col].astype('int'), sel_months)
+        mask = ((mask) & (np.isin(df[crop_year_col].astype('int'),sel_years)))
+        df=df[mask]
+
+        if scatter_type=='Categorical':
+            as_type='str'
         else:
-            sel_months = st.multiselect( 'Months', options)
-    with col_y_sel:        
-        st.markdown('#### Crop Year Split')
-        st.markdown('---')
-        all_options = st.checkbox("All Years", True)
+            as_type='int'
 
-        options=list(set(df[crop_year_col].astype('int')))
-        options.sort()
+        color_var_month=df[month_col].astype(as_type)
+        color_var_year=df[crop_year_col].astype(as_type)
 
-        if all_options:
-            sel_years = st.multiselect('Years', options, options)
-        else:
-            sel_years = st.multiselect('Years', options)
+        # Chart Labels
+        cols_with_none = ['None','year','report']
+        cols_with_none.extend(df.columns)
+        chart_labels = chart_labels.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
 
-    col_m_chart, col_y_chart = st.columns([1,1])
-    if ((len(sel_months)==0) | (len(sel_years)==0)): st.stop()
+        if chart_labels=='None':
+            chart_labels=None
+        elif chart_labels=='year':
+            chart_labels=df.index.year
+        elif chart_labels=='report':
+            chart_labels=df.index
 
-    mask = np.isin(df[month_col].astype('int'), sel_months)
-    mask = ((mask) & (np.isin(df[crop_year_col].astype('int'),sel_years)))
-    df=df[mask]
-
-    if scatter_type=='Categorical':
-        as_type='str'
-    else:
-        as_type='int'
-
-    color_var_month=df[month_col].astype(as_type)
-    color_var_year=df[crop_year_col].astype(as_type)
-
-    # Chart Labels
-    cols_with_none = ['None','year','report']
-    cols_with_none.extend(df.columns)
-    chart_labels = chart_labels.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
-
-    if chart_labels=='None':
-        chart_labels=None
-    elif chart_labels=='year':
-        chart_labels=df.index.year
-    elif chart_labels=='report':
-        chart_labels=df.index
-
+    # Charts 
     for x in x_cols:
         with col_m_chart:        
             fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+            fig.add_trace(go.Scatter(name='Today',x=[model_df.loc[today_index][x]], y=[model_df.loc[today_index][y_col]], mode = 'markers', marker_symbol = 'star',marker_size = 15, marker_color='red', hovertemplate='Today'))
+
             fig.update_traces(textposition='top center')
             fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
 
@@ -274,14 +281,20 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
                 all_models=all_models.px_fit_results
                 legend_items=[]
                 for trace in fig.data:
-                    if 'OLS trendline' in trace.hovertemplate:
+                    if 'OLS trendline' in trace.hovertemplate: #hovertemplate
                         legend_items.append(trace.name)
 
+                r_sq={'month':[],'rsquared':[]}
                 for i, tm in enumerate(all_models): # tm: Trendline Model
-                    st.write(legend_items[i], 'R-Squared:', str(round(tm.rsquared,3)))
+                    r_sq['month'].append(legend_items[i])
+                    r_sq['rsquared'].append(round(tm.rsquared,3))
+                
+                st.dataframe(pd.DataFrame(r_sq))
+                
 
         with col_y_chart:            
             fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+            fig.add_trace(go.Scatter(name='Today',x=[model_df.loc[today_index][x]], y=[model_df.loc[today_index][y_col]], mode = 'markers', marker_symbol = 'star',marker_size = 15, marker_color='red', hovertemplate='Today'))
             fig.update_traces(textposition='top center')
             fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
 
@@ -294,5 +307,9 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
                     if 'OLS trendline' in trace.hovertemplate:
                         legend_items.append(trace.name)
 
+                r_sq={'year':[],'rsquared':[]}
                 for i, tm in enumerate(all_models): # tm: Trendline Model
-                    st.write(legend_items[i], 'R-Squared:', str(round(tm.rsquared,3)))
+                    r_sq['year'].append(legend_items[i])
+                    r_sq['rsquared'].append(round(tm.rsquared,3))
+                
+                st.dataframe(pd.DataFrame(r_sq))

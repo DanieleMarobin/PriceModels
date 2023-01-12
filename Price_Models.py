@@ -21,132 +21,132 @@ if True:
     import statsmodels.api as sm
 
     import concurrent.futures
-    import Charts as uc
-    
+    import Charts as uc    
 
 # functions
-def Fit_Model(df, y_col: str, x_cols=[], exclude_from=None, extract_only=None):
-    """
-    'exclude_from' needs to be consistent with the df index
-    """
+if True:
+    def Fit_Model(df, y_col: str, x_cols=[], exclude_from=None, extract_only=None):
+        """
+        'exclude_from' needs to be consistent with the df index
+        """
 
-    if not ('const' in df.columns):
-        df = sm.add_constant(df, has_constant='add')
+        if not ('const' in df.columns):
+            df = sm.add_constant(df, has_constant='add')
 
-    if not ('const' in x_cols):        
-        x_cols.append('const')
+        if not ('const' in x_cols):        
+            x_cols.append('const')
 
-    if exclude_from!=None:
-        df=df.loc[df.index<exclude_from]
+        if exclude_from!=None:
+            df=df.loc[df.index<exclude_from]
 
-    y_df = df[[y_col]]
+        y_df = df[[y_col]]
 
-    if (len(x_cols)>0):
-        X_df=df[x_cols]
-    else:
-        X_df=df.drop(columns = y_col)
-
-    model = sm.OLS(y_df, X_df).fit()
-
-    if extract_only is None:
-        fo = model
-    elif extract_only == 'rsquared':
-        fo = model.rsquared
-
-    return fo
-
-def run_multiple_models(df, y_col: str, x_cols_list=[], extract_only='rsquared', parallel=None, max_workers=None):
-    """
-    'x_cols_list' (list of list):
-        -   1 list for each model
-        -   1 list of 'x_cols' (all the explanatory variables)
-
-
-    the below [:] is needed because in python the lists are always passed by reference
-    for a great explanation ask chatgpt the below:
-            - how can I pass a list by value in python?        
-    """
-    fo={}
-
-    if parallel is None:
-        for x_cols in x_cols_list:            
-            key = '/'.join(x_cols)
-            fo[key] = Fit_Model(df, y_col, x_cols[:], None, extract_only)
-
-    elif parallel=='thread':
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            results={}
-            for x_cols in x_cols_list:
-                key = '/'.join(x_cols)             
-                results[key] = executor.submit(Fit_Model, df, y_col, x_cols[:], None, extract_only)
-        
-        for key, res in results.items():
-            fo[key]=res.result()
-
-    elif parallel=='process':
-        with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-            results={}
-            for x_cols in x_cols_list:
-                key = '/'.join(x_cols)             
-                results[key] = executor.submit(Fit_Model, df, y_col, x_cols[:], None, extract_only)
-        
-        for key, res in results.items():
-            fo[key]=res.result()
-
-    return fo
-
-def sorted_rsquared_var(model_df, y_col='y', n_var=1, with_replacement=False, cols_excluded=[], parallel=None, max_workers=None):
-    """
-    with_replacement = True
-        - makes a difference only if 'n_var>1'
-        - it means that if we have 'n_var==2', it will also try the model [v1, v1] so the same variable n times
-        - 'n_var==3' => [v1, v1, v1]        
-    """
-    # Creating the results dictiony: 
-    #       1) Adding Variables cols
-    #       2) then the 'value'
-    results_dict={}
-    for v in range(n_var):
-        results_dict['v'+str(v+1)]=[]
-    results_dict['value']=[]
-
-    x_cols_list=[]
-    cols_excluded = cols_excluded+[y_col]
-    cols_model = list(set(model_df.columns)-set(cols_excluded))
-
-    if with_replacement:        
-        comb = combinations(cols_model, n_var)
-    else:
-        comb = combinations_with_replacement(cols_model, n_var)
-
-    x_cols_list = [list(c) for c in comb] # converting 'list of tuples' to 'list of lists' 
-    models_results=run_multiple_models(df=model_df, y_col=y_col, x_cols_list=x_cols_list, extract_only=None, parallel=parallel, max_workers=max_workers)
-
-    # Visualize with the heat map
-    for key, model in models_results.items():
-        # Add the variable names
-        vars_split=key.split('/')        
-        [results_dict['v'+str(i+1)].append(v) for i,v in enumerate(vars_split)]
-
-        # Add the R-Squared
-        if n_var>1:
-            results_dict['value'].append(100.0*model.rsquared)
+        if (len(x_cols)>0):
+            X_df=df[x_cols]
         else:
-            # if there is only 1 variable, I also put the sign of the relationship
-            results_dict['value'].append(np.sign(model.params[key])*100.0*model.rsquared)
+            X_df=df.drop(columns = y_col)
+
+        model = sm.OLS(y_df, X_df).fit()
+
+        if extract_only is None:
+            fo = model
+        elif extract_only == 'rsquared':
+            fo = model.rsquared
+
+        return fo
+
+    def run_multiple_models(df, y_col: str, x_cols_list=[], extract_only='rsquared', parallel=None, max_workers=None):
+        """
+        'x_cols_list' (list of list):
+            -   1 list for each model
+            -   1 list of 'x_cols' (all the explanatory variables)
+
+
+        the below [:] is needed because in python the lists are always passed by reference
+        for a great explanation ask chatgpt the below:
+                - how can I pass a list by value in python?        
+        """
+        fo={}
+
+        if parallel is None:
+            for x_cols in x_cols_list:            
+                key = '/'.join(x_cols)
+                fo[key] = Fit_Model(df, y_col, x_cols[:], None, extract_only)
+
+        elif parallel=='thread':
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                results={}
+                for x_cols in x_cols_list:
+                    key = '/'.join(x_cols)             
+                    results[key] = executor.submit(Fit_Model, df, y_col, x_cols[:], None, extract_only)
             
+            for key, res in results.items():
+                fo[key]=res.result()
 
-    # Create and Sort the 'Ranking DataFrame'
-    rank_df=pd.DataFrame(results_dict)
+        elif parallel=='process':
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                results={}
+                for x_cols in x_cols_list:
+                    key = '/'.join(x_cols)             
+                    results[key] = executor.submit(Fit_Model, df, y_col, x_cols[:], None, extract_only)
+            
+            for key, res in results.items():
+                fo[key]=res.result()
 
-    rank_df['abs_value']=rank_df['value'].abs()
-    rank_df=rank_df.sort_values(by='abs_value',ascending=False)
+        return fo
 
-    # to extract the top N
-    # sorted_vars = rank_df['variable']
-    # x_cols_list=sorted_vars[0:top_n]
+    def sorted_rsquared_var(model_df, y_col='y', n_var=1, with_replacement=False, cols_excluded=[], parallel=None, max_workers=None):
+        """
+        with_replacement = True
+            - makes a difference only if 'n_var>1'
+            - it means that if we have 'n_var==2', it will also try the model [v1, v1] so the same variable n times
+            - 'n_var==3' => [v1, v1, v1]        
+        """
+        # Creating the results dictiony: 
+        #       1) Adding Variables cols
+        #       2) then the 'value'
+        results_dict={}
+        for v in range(n_var):
+            results_dict['v'+str(v+1)]=[]
+        results_dict['value']=[]
 
-    return rank_df
+        x_cols_list=[]
+        cols_excluded = cols_excluded+[y_col]
+        cols_model = list(set(model_df.columns)-set(cols_excluded))
+
+        if with_replacement:        
+            comb = combinations(cols_model, n_var)
+        else:
+            comb = combinations_with_replacement(cols_model, n_var)
+
+        x_cols_list = [list(c) for c in comb] # converting 'list of tuples' to 'list of lists' 
+        models_results=run_multiple_models(df=model_df, y_col=y_col, x_cols_list=x_cols_list, extract_only=None, parallel=parallel, max_workers=max_workers)
+
+        # Visualize with the heat map
+        for key, model in models_results.items():
+            # Add the variable names
+            vars_split=key.split('/')        
+            [results_dict['v'+str(i+1)].append(v) for i,v in enumerate(vars_split)]
+
+            # Add the R-Squared
+            if n_var>1:
+                results_dict['value'].append(100.0*model.rsquared)
+            else:
+                # if there is only 1 variable, I also put the sign of the relationship
+                results_dict['value'].append(np.sign(model.params[key])*100.0*model.rsquared)
+                
+
+        # Create and Sort the 'Ranking DataFrame'
+        rank_df=pd.DataFrame(results_dict)
+
+        rank_df['abs_value']=rank_df['value'].abs()
+        rank_df=rank_df.sort_values(by='abs_value',ascending=False)
+
+        # to extract the top N
+        # sorted_vars = rank_df['variable']
+        # x_cols_list=sorted_vars[0:top_n]
+
+        return rank_df
 
 # Data
 if True:
@@ -157,7 +157,8 @@ if True:
         fo={}
         # Timing
         first_training_date=dt(1995,5,1) # to start with a fresh new crop year
-        last_training_date=dt(2022,12,1)
+        # last_training_date=dt(2022,12,1)
+        last_training_date=df_model_all.index[-1]
 
         # Shifts
         cols_to_shift=[]
@@ -246,6 +247,7 @@ if True:
             legs=e['symbols']
             df[col]=df[legs[0]]-df[legs[1]]
         return df
+
 # Results visualization
 if True:
     def heat_map_var_months(model_df, y_cols=['a_price_c '], top_n = 40, months=list(range(1,13)), cols_excluded=[], parallel=None, max_workers=None, show=False):
