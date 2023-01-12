@@ -107,11 +107,11 @@ if True:
                 sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)
                 sm_r_squared = st.checkbox('Add R-Squared',True,on_change=del_sm)
 
-                sm_height = st.number_input('Height',100,100000,750,100)
+                sm_height = st.number_input('Scatter Matrix Height',100,100000,750,100)
                 sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.02,0.01,on_change=del_sm)
                 sm_hor = st.number_input('Horizontal Spacing',0.0,1.0,0.01,0.01,on_change=del_sm)
                 sm_marker_size = st.number_input('Marker Size',1,100,2,1)
-                sm_font_size = st.number_input('Font Size',1,20,12,1)
+                sm_font_size = st.number_input('Scatter Matrix Font Size',1,20,12,1)
 
         if hm_analysis:
             with st.expander('Heat Map Settings'):
