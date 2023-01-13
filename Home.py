@@ -37,7 +37,7 @@ if True:
     def del_sm():
          if ('scatter_matrix' in st.session_state):
             del st.session_state['scatter_matrix']
-
+    
 # Preliminaries
 if True:
     if 'run_analysis' not in st.session_state:
@@ -56,7 +56,6 @@ if True:
     model_df_instr=mp.model_df_instructions(df_model_all)
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
     today_index=model_df.index[-1]
-    st.write('today_index',today_index)
 
 # Filters and Settings
 if True:
@@ -88,7 +87,7 @@ if True:
         x_cols = list(set(x_cols)-set(special_vars)) # Remove the 'special_vars'
 
     with col_n_var:
-        top_n_vars = st.number_input('Top N Variables',1,10000,10,1, on_change=disable_analysis)
+        top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)
 
     with col_calc_button:
         st.markdown('##')
@@ -109,16 +108,16 @@ if True:
                 sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)
                 sm_r_squared = st.checkbox('Add R-Squared',True,on_change=del_sm)
 
-                sm_height = st.number_input('Scatter Matrix Height',100,100000,750,100)
+                sm_height = st.number_input('Height',100,100000,1000,100, key='smh')
                 sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.02,0.01,on_change=del_sm)
                 sm_hor = st.number_input('Horizontal Spacing',0.0,1.0,0.01,0.01,on_change=del_sm)
-                sm_marker_size = st.number_input('Marker Size',1,100,2,1)
-                sm_font_size = st.number_input('Scatter Matrix Font Size',1,20,12,1)
+                sm_marker_size = st.number_input('Marker Size',1,100,2,1,key='sms')
+                sm_font_size = st.number_input('Font Size',1,20,12,1,key='smf')
 
         if hm_analysis:
             with st.expander('Heat Map Settings'):
-                hm_height = st.number_input('Height',100,100000,750,100)
-                hm_font_size = st.number_input('Font Size',1,20,10,1)
+                hm_height = st.number_input('Height',100,100000,750,100, key='hmh')
+                hm_font_size = st.number_input('Font Size',1,20,10,1, key='hmf')
 
         if sp_analysis:
             with st.expander('Scatter Plots Settings'):
@@ -126,11 +125,20 @@ if True:
                 trendline_scope = st.radio('Trendline',('overall','trace', None))
                 
                 chart_labels=st.container()
+                           
+                sp_height = st.number_input('Height',100,100000,750,100, key='sph')
+                sp_marker_size = st.number_input('Marker Size',1,100,5,1,key='sps')
+                sp_today_size = st.number_input('Today Market Size',1,100,15,1,key='spt')
 
-                colors=list(color_scales.keys())
-                colors.sort()
-                chart_color_key = st.selectbox('Chart Color',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
-                color_list=color_scales[chart_color_key]
+                single_color = st.checkbox('Single Color',False)
+                if single_color:
+                    chart_color_single = st.color_picker('Single Color', '#2929E8')
+                    color_list=[chart_color_single,chart_color_single]
+                else:
+                    colors=list(color_scales.keys())
+                    colors.sort()
+                    chart_color_key = st.selectbox('Chart Color Scales',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
+                    color_list=color_scales[chart_color_key]                
 
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
@@ -251,6 +259,11 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
         else:
             as_type='int'
 
+        if trendline_scope=='trace':
+            trendline_color = None
+        else:
+            trendline_color = 'black'
+
         color_var_month=df[month_col].astype(as_type)
         color_var_year=df[crop_year_col].astype(as_type)
 
@@ -261,19 +274,20 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
 
         if chart_labels=='None':
             chart_labels=None
-        elif chart_labels=='year':
+        elif chart_labels=='calendar year':
             chart_labels=df.index.year
         elif chart_labels=='report':
             chart_labels=df.index
 
     # Charts 
     for x in x_cols:
-        with col_m_chart:        
-            fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
-            fig.add_trace(go.Scatter(name='Today',x=[model_df.loc[today_index][x]], y=[model_df.loc[today_index][y_col]], mode = 'markers', marker_symbol = 'star',marker_size = 15, marker_color='red', hovertemplate='Today'))
+        with col_m_chart:
+            fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_color_override=trendline_color, trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)            
 
-            fig.update_traces(textposition='top center')
-            fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
+            fig.update_traces(textposition='top center',marker=dict(size=sp_marker_size))
+            fig.update_layout(height=sp_height, legend_title_text=None,coloraxis_colorbar=dict(title=None))
+
+            uc.add_today(fig,model_df,x,y_col,today_index, size=sp_today_size) # adding after updating layout (so I don't change the marker size)
 
             st.plotly_chart(fig,use_container_width=True)
             all_models=px.get_trendline_results(fig)
@@ -291,12 +305,14 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
                 
                 st.dataframe(pd.DataFrame(r_sq))
                 
-
         with col_y_chart:            
-            fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
-            fig.add_trace(go.Scatter(name='Today',x=[model_df.loc[today_index][x]], y=[model_df.loc[today_index][y_col]], mode = 'markers', marker_symbol = 'star',marker_size = 15, marker_color='red', hovertemplate='Today'))
-            fig.update_traces(textposition='top center')
-            fig.update_layout(legend_title_text=None,coloraxis_colorbar=dict(title=None))
+            fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_color_override=trendline_color, trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
+            uc.add_today(fig,model_df,x,y_col,today_index)
+
+            fig.update_traces(textposition='top center',marker=dict(size=sp_marker_size))
+            fig.update_layout(height=sp_height, legend_title_text=None,coloraxis_colorbar=dict(title=None))
+
+            uc.add_today(fig,model_df,x,y_col,today_index, size=sp_today_size) # adding after updating layout (so I don't change the marker size)
 
             st.plotly_chart(fig,use_container_width=True)
             all_models=px.get_trendline_results(fig)

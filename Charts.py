@@ -89,7 +89,7 @@ def scatter_matrix_chart(df, add_trendline=True, add_r_squared=True, vertical_sp
 
             date_format = "%d %B %Y"
             y_str = 'Y: '+ yc +' %{y:.2f}'
-            x_str = 'X: '+ xc +' %{x:.2f}'            
+            x_str = 'X: '+ xc +' %{x:.2f}'
             text=[]
             if xc=='date':
                 text = [d.strftime(date_format) for d in [dt.fromordinal(i) for i in x]]
@@ -138,9 +138,17 @@ def get_plotly_colorscales():
     colors_modules = ['carto', 'cmocean', 'cyclical','diverging', 'plotlyjs', 'qualitative', 'sequential']
     for color_module in colors_modules:
         colorscale_dict.update({name+'-'+color_module:body for name, body in inspect.getmembers(getattr(px.colors, color_module)) if (isinstance(body, list) & ('__all__' not in name))})
-        
+    colorscale_dict['Red-only']=['red','red']
+    colorscale_dict['Blue-only']=['blue','blue']
+    colorscale_dict['Green-only']=['green','green']
+    colorscale_dict['Black-only']=['black','black']
     return colorscale_dict
 
+def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='star'):
+    y_str = 'Y: '+ y_col +' %{y:.2f}'
+    x_str = 'X: '+ x_col +' %{x:.2f}'
+    hovertemplate="<br>".join([y_str, x_str, "<extra></extra>"])
+    fig.add_trace(go.Scatter(name='Today',x=[df.loc[today_idx][x_col]], y=[df.loc[today_idx][y_col]], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate))
 
 def plot_plotly_colorscales(step=0.1, colors_modules = ['carto', 'cmocean', 'cyclical','diverging', 'plotlyjs', 'qualitative', 'sequential']):   
     x=np.arange(1,-1.001,-step)
