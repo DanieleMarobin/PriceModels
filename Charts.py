@@ -67,17 +67,17 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     return fig
 
-def scatter_matrix_chart(df, add_trendline=True, add_r_squared=True, vertical_spacing=0.03, horizontal_spacing=0.01):
+def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=True, vertical_spacing=0.03, horizontal_spacing=0.01, marker_size=2, today_index=None, today_size=5):
     cols=list(df.columns)
 
-    if add_r_squared:
+    if add_title:
         titles=['title ' + str(i) for i in range(len(cols)*len(cols))]
     else:
         titles=[]
 
     fig = make_subplots(rows=len(cols), cols=len(cols), shared_xaxes=True, shared_yaxes=True, subplot_titles=titles, vertical_spacing=vertical_spacing, horizontal_spacing=horizontal_spacing)
     mode='markers'
-    marker_size=2
+    
     anno_count=0
     for ri, yc in enumerate(cols):
         for ci, xc in enumerate(cols):
@@ -101,7 +101,9 @@ def scatter_matrix_chart(df, add_trendline=True, add_r_squared=True, vertical_sp
 
             hovertemplate="<br>".join([y_str, x_str, "<extra></extra>"])
 
-            fig.add_trace(go.Scatter(x=x, y=y, mode=mode,marker=dict(size=marker_size),hovertemplate=hovertemplate,text=text), row=rr, col=cc)
+            fig.add_trace(go.Scatter(x=x, y=y, mode=mode,marker=dict(size=marker_size,color=marker_color),hovertemplate=hovertemplate,text=text), row=rr, col=cc)
+            if today_index is not None:
+                add_today(fig,df,xc,yc,today_index,today_size, row=rr, col=cc)
                         
             fig.update_xaxes(row=rr, col=cc, showgrid=False,zeroline=False)
             if rr==len(cols):
@@ -113,14 +115,14 @@ def scatter_matrix_chart(df, add_trendline=True, add_r_squared=True, vertical_sp
                 tick_pos=(y.max()+y.min())/2.0
                 fig.update_yaxes(row=rr, col=cc, tickangle=0,automargin=True,tickvals=[tick_pos],ticktext=[yc],showgrid=False,zeroline=False)
 
-            if ((add_trendline) | (add_r_squared)):
+            if ((add_trendline) | (add_title)):
                 model = sm.OLS(y.values, sm.add_constant(x.values), missing="drop").fit()
                 r_sq=str(round(model.rsquared,3))
                 hovertemplate="<br>".join(['R-Squared', r_sq, "<extra></extra>"])
 
                 if add_trendline:
                     fig.add_trace(go.Scatter(x=x, y=model.predict(), mode='lines',hovertemplate=hovertemplate, line=dict(color='black', width=0.5)), row=rr, col=cc)
-                if add_r_squared:
+                if add_title:
                     fig.layout.annotations[anno_count].update(text="R-sq = "+r_sq)
                     anno_count+=1
     
@@ -142,7 +144,7 @@ def get_plotly_colorscales():
     colorscale_dict['Black-only']=['black','black']
     return colorscale_dict
 
-def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='star', name='Today', model=None):
+def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='star', name='Today', model=None, row=1, col=1):
     """
     if 'model' is not None, it will calculate the prediction
     markers:
@@ -164,7 +166,7 @@ def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='st
     y_str = 'Y: '+ y_col +' %{y:.2f}'
     x_str = 'X: '+ x_col +' %{x:.2f}'
     hovertemplate="<br>".join([name, y_str, x_str, "<extra></extra>"])
-    fig.add_trace(go.Scatter(name=name,x=[x], y=[y], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate))
+    fig.add_trace(go.Scatter(name=name,x=[x], y=[y], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate), row=row, col=col)
     return y
 
 

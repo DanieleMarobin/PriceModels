@@ -105,14 +105,28 @@ if True:
 
         if sm_analysis:
             with st.expander('Scatter Matrix Settings'):
-                sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)
-                sm_r_squared = st.checkbox('Add R-Squared',True,on_change=del_sm)
+                tab1, tab2, tab3 = st.tabs(["Sizing", "Colors", "Trendline"])
 
-                sm_height = st.number_input('Height',100,100000,1000,100, key='smh')
-                sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.02,0.01,on_change=del_sm)
-                sm_hor = st.number_input('Horizontal Spacing',0.0,1.0,0.01,0.01,on_change=del_sm)
-                sm_marker_size = st.number_input('Marker Size',1,100,2,1,key='sms')
-                sm_font_size = st.number_input('Font Size',1,20,12,1,key='smf')
+                with tab1:
+                    sm_height = st.number_input('Height',100,100000,1000,100, key='smh')
+                    sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.03,0.01,on_change=del_sm)
+                    sm_hor = st.number_input('Horizontal Spacing',0.0,1.0,0.01,0.01,on_change=del_sm)
+                    sm_marker_size = st.number_input('Marker Size',1,100,2,1,key='sms')
+                    sm_font_size = st.number_input('Font Size',1,20,12,1,key='smf', on_change=del_sm)
+
+                with tab2:
+                    sm_color = st.color_picker('Single Color', '#2929E8',on_change=del_sm)
+
+                with tab3:
+                    sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)
+                    sm_title = st.checkbox('Add R-Squared & Prediction',True,on_change=del_sm)
+                    sm_add_today = st.checkbox('Add Today',True, on_change=del_sm)
+                    sm_today_size = st.number_input('Today Marker Size',1,100,10,1,key='smt', on_change=del_sm)
+
+                    sm_today_index=None
+                    if sm_add_today:
+                        sm_today_index=today_index
+
 
         if hm_analysis:
             with st.expander('Heat Map Settings'):
@@ -154,10 +168,6 @@ if True:
                 
                            
 
-                
-
-
-
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
 # - if they are in memory, it means they are already sorted
@@ -186,13 +196,11 @@ if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
         fig=st.session_state['scatter_matrix']
     else:
         with st.spinner('Calculating the Scatter Matrix...'):
-            df=model_df[[y_col]+x_cols]
-            st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df,sm_trendline,sm_r_squared,sm_vert,sm_hor)
+            df=model_df[[y_col]+x_cols]                              
+            st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df, marker_color=sm_color, add_trendline=sm_trendline, add_title=sm_title, vertical_spacing=sm_vert, horizontal_spacing=sm_hor, today_index=sm_today_index, today_size=sm_today_size)
             fig=st.session_state['scatter_matrix']
             
     fig.update_layout(height=sm_height)
-
-    fig.for_each_trace(lambda trace: trace.update(marker={'size': sm_marker_size}))
 
     fig.for_each_annotation(lambda anno: anno.update(font=dict(size=sm_font_size)))
     fig.for_each_xaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
