@@ -121,24 +121,42 @@ if True:
 
         if sp_analysis:
             with st.expander('Scatter Plots Settings'):
-                scatter_type = st.radio('Scatter Color',('Categorical','Continuous'))
-                trendline_scope = st.radio('Trendline',('overall','trace', None))
-                
-                chart_labels=st.container()
-                           
-                sp_height = st.number_input('Height',100,100000,750,100, key='sph')
-                sp_marker_size = st.number_input('Marker Size',1,100,5,1,key='sps')
-                sp_today_size = st.number_input('Today Market Size',1,100,15,1,key='spt')
+                tab1, tab2, tab3 = st.tabs(["Scatter", "Colors", "Trendline"])
+                with tab1:
+                    chart_labels=st.container()
+                    sp_height = st.number_input('Height',100,100000,750,100, key='sph')
+                    sp_marker_size = st.number_input('Marker Size',1,100,5,1,key='sps')
 
-                single_color = st.checkbox('Single Color',False)
-                if single_color:
-                    chart_color_single = st.color_picker('Single Color', '#2929E8')
-                    color_list=[chart_color_single,chart_color_single]
-                else:
-                    colors=list(color_scales.keys())
-                    colors.sort()
-                    chart_color_key = st.selectbox('Chart Color Scales',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
-                    color_list=color_scales[chart_color_key]                
+                with tab2:
+                    scatter_type = st.radio('Scatter Color',('Categorical','Continuous'))
+
+                    single_color = st.checkbox('Single Color',False)
+                    if single_color:
+                        chart_color_single = st.color_picker('Single Color', '#2929E8')
+                        color_list=[chart_color_single,chart_color_single]
+                    else:
+                        colors=list(color_scales.keys())
+                        colors.sort()
+                        chart_color_key = st.selectbox('Chart Color Scales',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
+                        color_list=color_scales[chart_color_key]
+
+
+                with tab3:
+                    trendline_scope = st.radio('Scope',('overall','trace', None))
+
+                    sp_add_star = st.checkbox('Add Today Star', True)
+                    if sp_add_star:
+                        sp_today_size = st.number_input('Today Star Size',1,100,15,1)
+
+                    sp_add_pred = st.checkbox('Add Prediction', True)
+                    if sp_add_pred:
+                        sp_pred_size = st.number_input('Prediction Size',1,100,10,1)
+                
+                           
+
+                
+
+
 
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
@@ -268,7 +286,7 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
         color_var_year=df[crop_year_col].astype(as_type)
 
         # Chart Labels
-        cols_with_none = ['None','year','report']
+        cols_with_none = ['None','calendar year','report']
         cols_with_none.extend(df.columns)
         chart_labels = chart_labels.selectbox('Chart Labels',cols_with_none, cols_with_none.index('None'))
 
@@ -281,51 +299,46 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
 
     # Charts 
     for x in x_cols:
-        with col_m_chart:
-            fig=px.scatter(df,x=x,y=y_col,color=color_var_month, text=chart_labels, trendline='ols',trendline_color_override=trendline_color, trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)            
+        loop_cols=[col_m_chart, col_y_chart]
+        loop_color_var=[color_var_month,color_var_year]
+        for c, col_chart in enumerate(loop_cols):
+            with col_chart:
+                fig=px.scatter(df,x=x,y=y_col,color=loop_color_var[c], text=chart_labels, trendline='ols',trendline_color_override=trendline_color, trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)            
 
-            fig.update_traces(textposition='top center',marker=dict(size=sp_marker_size))
-            fig.update_layout(height=sp_height, legend_title_text=None,coloraxis_colorbar=dict(title=None))
+                fig.update_traces(textposition='top center',marker=dict(size=sp_marker_size))
+                fig.update_layout(height=sp_height, legend_title_text=None,coloraxis_colorbar=dict(title=None))
 
-            uc.add_today(fig,model_df,x,y_col,today_index, size=sp_today_size) # adding after updating layout (so I don't change the marker size)
+                if sp_add_star:
+                    uc.add_today(fig,model_df,x,y_col,today_index, size=sp_today_size) # adding after updating layout (so I don't change the marker size)
+            
+                all_models=px.get_trendline_results(fig)
+                if len(all_models)>0:
+                    all_models=all_models.px_fit_results
+                    legend_items=[]
+                    colors=[]
+                    for trace in fig.data:
+                        if 'OLS trendline' in trace.hovertemplate: #hovertemplate
+                            legend_items.append(trace.name)
+                            if trace.name == 'Overall Trendline':
+                                legend_items[-1]='Trend'
+                                colors.append(trace.line.color)
+                            else:
+                                colors.append(trace.marker.color)
+                            # st.write(trace)
 
-            st.plotly_chart(fig,use_container_width=True)
-            all_models=px.get_trendline_results(fig)
-            if len(all_models)>0:        
-                all_models=all_models.px_fit_results
-                legend_items=[]
-                for trace in fig.data:
-                    if 'OLS trendline' in trace.hovertemplate: #hovertemplate
-                        legend_items.append(trace.name)
+                    r_sq={'trace':[], 'r-squared':[], 'p-values':[], 'prediction':[]}
+                    for i, tm in enumerate(all_models): # tm: Trendline Model
+                        pred=np.NaN
+                        if sp_add_pred:
+                            pred=uc.add_today(fig,model_df,x,y_col,today_index, size=sp_pred_size, model=tm, symbol='x', color=colors[i], name='Pred: '+ legend_items[i])
 
-                r_sq={'month':[],'rsquared':[]}
-                for i, tm in enumerate(all_models): # tm: Trendline Model
-                    r_sq['month'].append(legend_items[i])
-                    r_sq['rsquared'].append(round(tm.rsquared,3))
-                
-                st.dataframe(pd.DataFrame(r_sq))
-                
-        with col_y_chart:            
-            fig=px.scatter(df,x=x,y=y_col,color=color_var_year, text=chart_labels, trendline='ols',trendline_color_override=trendline_color, trendline_scope=trendline_scope, color_discrete_sequence=color_list, color_continuous_scale=color_list)
-            uc.add_today(fig,model_df,x,y_col,today_index)
+                        r_sq['trace'].append(legend_items[i])
+                        r_sq['r-squared'].append(tm.rsquared)
+                        r_sq['p-values'].append(tm.pvalues[-1])
+                        r_sq['prediction'].append(pred)
 
-            fig.update_traces(textposition='top center',marker=dict(size=sp_marker_size))
-            fig.update_layout(height=sp_height, legend_title_text=None,coloraxis_colorbar=dict(title=None))
-
-            uc.add_today(fig,model_df,x,y_col,today_index, size=sp_today_size) # adding after updating layout (so I don't change the marker size)
-
-            st.plotly_chart(fig,use_container_width=True)
-            all_models=px.get_trendline_results(fig)
-            if len(all_models)>0:        
-                all_models=all_models.px_fit_results
-                legend_items=[]
-                for trace in fig.data:
-                    if 'OLS trendline' in trace.hovertemplate:
-                        legend_items.append(trace.name)
-
-                r_sq={'year':[],'rsquared':[]}
-                for i, tm in enumerate(all_models): # tm: Trendline Model
-                    r_sq['year'].append(legend_items[i])
-                    r_sq['rsquared'].append(round(tm.rsquared,3))
-                
-                st.dataframe(pd.DataFrame(r_sq))
+                st.plotly_chart(fig,use_container_width=True)
+                if len(all_models)>0:
+                    r_sq=pd.DataFrame(r_sq)
+                    r_sq=r_sq.dropna(axis=1)
+                    st.dataframe(pd.DataFrame(r_sq),use_container_width=False)

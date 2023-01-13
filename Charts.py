@@ -120,12 +120,10 @@ def scatter_matrix_chart(df, add_trendline=True, add_r_squared=True, vertical_sp
 
                 if add_trendline:
                     fig.add_trace(go.Scatter(x=x, y=model.predict(), mode='lines',hovertemplate=hovertemplate, line=dict(color='black', width=0.5)), row=rr, col=cc)
-
                 if add_r_squared:
                     fig.layout.annotations[anno_count].update(text="R-sq = "+r_sq)
                     anno_count+=1
     
-    # fig.layout.annotations[1].update(text="Stackoverflow",font=dict(size=12))
     fig.update_layout(showlegend=False)
     return fig
 
@@ -144,11 +142,32 @@ def get_plotly_colorscales():
     colorscale_dict['Black-only']=['black','black']
     return colorscale_dict
 
-def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='star'):
+def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='star', name='Today', model=None):
+    """
+    if 'model' is not None, it will calculate the prediction
+    markers:
+        https://plotly.com/python/marker-style/
+    """
+
+    x = df.loc[today_idx][x_col]
+
+    if model is None:    
+        y = df.loc[today_idx][y_col]
+    else:
+        pred_df=sm.add_constant(df).loc[today_idx][['const',x_col]]
+        y=model.predict(pred_df)[0]
+        # print('model.params', model.params)
+        # print('pred_df', pred_df)
+        # print('prediction -------------->', model.predict(pred_df)[0])
+        # return True
+    
     y_str = 'Y: '+ y_col +' %{y:.2f}'
     x_str = 'X: '+ x_col +' %{x:.2f}'
-    hovertemplate="<br>".join([y_str, x_str, "<extra></extra>"])
-    fig.add_trace(go.Scatter(name='Today',x=[df.loc[today_idx][x_col]], y=[df.loc[today_idx][y_col]], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate))
+    hovertemplate="<br>".join([name, y_str, x_str, "<extra></extra>"])
+    fig.add_trace(go.Scatter(name=name,x=[x], y=[y], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate))
+    return y
+
+
 
 def plot_plotly_colorscales(step=0.1, colors_modules = ['carto', 'cmocean', 'cyclical','diverging', 'plotlyjs', 'qualitative', 'sequential']):   
     x=np.arange(1,-1.001,-step)
