@@ -76,58 +76,60 @@ if True:
         options=special_vars[:]
         options=options+list(model_df.columns)
         x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis, key='multiselect')
-        add_to_selection=True
+        
+        draw_search=False
+        draw_selected=False
         
         if 'All' in x_cols:
             x_cols=x_cols+list(model_df.columns)
-            add_to_selection=False
+            draw_search=True
         if 'All-Stock to use' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'stock to use' in c]
-            add_to_selection=False
+            draw_search=True
         if 'All-Ending Stocks' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'ending stock' in c]
-            add_to_selection=False
+            draw_search=True
         if 'All-Yields' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
-            add_to_selection=False        
+            draw_search=True        
 
         x_cols = list(set(x_cols)-set(special_vars))
-        if len(x_cols)<1:
-            add_to_selection=False
 
-        if add_to_selection:
+        if ((not draw_search) & (len(x_cols)>0)):
             st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
         
+        draw_selected=len(st.session_state['col_selection'])>0
     
-    with st.form("my_form"):
-        col1, col2, col3 =st.columns([4,1,4])
+    if ((draw_search) | (draw_selected)):
+        with st.form("my_form"):
+            col1, col2, col3 =st.columns([4,1,4])
 
-        if not add_to_selection:
-            with col3:
-                df_search = pd.DataFrame({'Selection':x_cols})
-                grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
+            if draw_search:
+                with col3:
+                    df_search = pd.DataFrame({'Selection':x_cols})
+                    grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
 
-            with col2:
-                add_but = st.form_submit_button("Select")
-                sub_but = st.form_submit_button("Remove", on_click=clear_multi)
-                df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
+                with col2:
+                    add_but = st.form_submit_button("Select")
+                    sub_but = st.form_submit_button("Remove", on_click=clear_multi)
+                    df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
 
-                if add_but:     
-                    if len(df_x_cols_search)>0:       
-                        st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
-        else:
-            with col2:
-                sub_but = st.form_submit_button("Remove", on_click=clear_multi)
+                    if add_but:     
+                        if len(df_x_cols_search)>0:       
+                            st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
+            else:
+                with col2:
+                    sub_but = st.form_submit_button("Remove", on_click=clear_multi)
 
-        with col1:
-            df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
-            grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
-            df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
+            with col1:
+                df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
+                grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
+                df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
 
-            if sub_but:
-                if len(df_x_cols_selected)>0: 
-                    st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
-                    st.experimental_rerun()
+                if sub_but:
+                    if len(df_x_cols_selected)>0: 
+                        st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
+                        st.experimental_rerun()
 
     # st.write(x_cols)
     x_cols = list(set(st.session_state['col_selection']))
