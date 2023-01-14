@@ -121,7 +121,8 @@ if True:
     with st.form("my_form", clear_on_submit=True):
         col1, col2, col3 =st.columns([4,1,4])
         with col1:
-            df_test = pd.DataFrame({'Selection':list(model_df.columns)})
+            # df_test = pd.DataFrame({'Selection':list(model_df.columns)})
+            df_test = pd.DataFrame({'Selection':x_cols})
             grid_response_test = uc.aggrid_table_selector(df_test, rows_per_page=5)
 
         with col2:
