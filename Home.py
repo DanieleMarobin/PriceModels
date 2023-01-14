@@ -73,24 +73,32 @@ if True:
         options=special_vars[:]
         options=options+list(model_df.columns)
         x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis)
+        add_to_selection=True
         
         if 'All' in x_cols:
             x_cols=x_cols+list(model_df.columns)
+            add_to_selection=False
         if 'All-Stock to use' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'stock to use' in c]
+            add_to_selection=False
         if 'All-Ending Stocks' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'ending stock' in c]
+            add_to_selection=False
         if 'All-Yields' in x_cols:
-            x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]            
+            x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
+            add_to_selection=False        
 
         x_cols = list(set(x_cols)-set(special_vars))
+
+        if add_to_selection:
+            st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
         
     
     with st.form("my_form"):
         col1, col2, col3 =st.columns([4,1,4])
 
-        if len(x_cols)>0:
-            with col1:
+        if not add_to_selection:
+            with col3:
                 df_search = pd.DataFrame({'Selection':x_cols})
                 grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
 
@@ -106,7 +114,7 @@ if True:
             with col2:
                 sub_but = st.form_submit_button("Remove")
 
-        with col3:
+        with col1:
             df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
             grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
             df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
