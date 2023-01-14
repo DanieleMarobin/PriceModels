@@ -89,6 +89,8 @@ if True:
             add_to_selection=False        
 
         x_cols = list(set(x_cols)-set(special_vars))
+        if len(x_cols)<1:
+            add_to_selection=False
 
         if add_to_selection:
             st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
