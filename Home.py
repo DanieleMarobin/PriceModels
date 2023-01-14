@@ -104,7 +104,7 @@ if True:
                         st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
         else:
             with col2:
-                sub_but = st.form_submit_button("Subtract")
+                sub_but = st.form_submit_button("Remove")
 
         with col3:
             df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
