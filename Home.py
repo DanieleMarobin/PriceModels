@@ -33,6 +33,7 @@ if True:
 
     def disable_analysis():
         st.session_state['run_analysis']=False
+        
 
     def del_sm():
          if ('scatter_matrix' in st.session_state):
@@ -50,7 +51,7 @@ if True:
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
     
-# Data
+# Retrieve the Data
 if True:
     df_model_all=fu.get_data()
     model_df_instr=mp.model_df_instructions(df_model_all)
@@ -58,8 +59,9 @@ if True:
     today_index=model_df.index[-1]
 
 # Filters and Settings
-if True:
-    col_y_sel, col_x_sel, col_n_var, col_calc_button = st.columns([1,3,0.5,0.5])
+if True:        
+    col_y_sel, col_x_sel, col_n_var, col_calc_button = st.columns([1,2,2,0.5])
+
     with col_y_sel:
         options = list(model_df.columns)
         y_col = st.selectbox('Target',options, options.index('a_price_c '), on_change=disable_analysis)
@@ -80,14 +82,34 @@ if True:
             x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]            
 
         x_cols = list(set(x_cols)-set(special_vars))
-        with st.expander(str(len(x_cols)) + ' of ' + str(len(model_df.columns))):
-            st.write(x_cols)
-        
+        sel_variables_n=st.container()
+
+        pre_selected_rows=[]
+        x_cols_ref=[]
+
+        # with st.expander('Refine Selection'):   
+        if len(x_cols)>0:              
+            df_col_selection = pd.DataFrame({'Selection':x_cols})
+            pre_selected_rows =list(range(len(x_cols)))
+
+            grid_response = uc.aggrid_table_selector(df_col_selection, rows_per_page=20,pre_selected_rows=pre_selected_rows)
+            df_x_cols_ref=pd.DataFrame(grid_response['selected_rows'])
+            if len(df_x_cols_ref)>0:
+                x_cols_ref=list(df_x_cols_ref['Selection'])
+            else:
+                x_cols_ref=[]
+
+        # st.write(x_cols_ref)
+        x_cols=x_cols_ref[:]
+
         x_cols=x_cols+[y_col]
         x_cols = list(set(x_cols)-set(special_vars)) # Remove the 'special_vars'
 
     with col_n_var:
         top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)
+        if len(x_cols_ref)>0:
+            # st.write(x_cols_ref)
+            st.write(df_x_cols_ref['Selection'])
 
     with col_calc_button:
         st.markdown('##')
@@ -127,7 +149,6 @@ if True:
                     if sm_add_today:
                         sm_today_index=today_index
 
-
         if hm_analysis:
             with st.expander('Heat Map Settings'):
                 hm_height = st.number_input('Height',100,100000,750,100, key='hmh')
@@ -154,7 +175,6 @@ if True:
                         chart_color_key = st.selectbox('Chart Color Scales',colors, colors.index('Plotly-qualitative')) # Plotly-qualitative, Jet, RdYlGn-diverging
                         color_list=color_scales[chart_color_key]
 
-
                 with tab3:
                     trendline_scope = st.radio('Scope',('overall','trace', None))
 
@@ -166,8 +186,6 @@ if True:
                     if sp_add_pred:
                         sp_pred_size = st.number_input('Prediction Size',1,100,10,1)
                 
-                           
-
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
 # - if they are in memory, it means they are already sorted

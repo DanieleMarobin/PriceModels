@@ -8,10 +8,13 @@ from datetime import datetime as dt
 import inspect
 import numpy as np
 import pandas as pd
+import statsmodels.api as sm
+
 import plotly.graph_objects as go
 import plotly.express as px
+
 from plotly.subplots import make_subplots
-import statsmodels.api as sm
+from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, ColumnsAutoSizeMode, JsCode
 
 
 def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=False, sort_by=None, abs=False, subtract=None, simmetric_sort=False, transpose=False, drop_cols=[], color_continuous_scale='RdBu', format_labels=None, title=None,tickangle=None, sorted_cols=[]):
@@ -169,24 +172,45 @@ def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='st
     fig.add_trace(go.Scatter(name=name,x=[x], y=[y], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate), row=row, col=col)
     return y
 
+def aggrid_table_selector(df,rows_per_page=None, pre_selected_rows=[]):
+    # Decide which columns to show
+    visible_cols=list(df.columns)
+    hide_cols=list(set(df.columns)-set(visible_cols))
 
+    # Sort the columns
+    sort_cols=visible_cols
+    sort_cols.extend(hide_cols)
+    df=df[sort_cols]
 
-def plot_plotly_colorscales(step=0.1, colors_modules = ['carto', 'cmocean', 'cyclical','diverging', 'plotlyjs', 'qualitative', 'sequential']):   
-    x=np.arange(1,-1.001,-step)
-    y=np.arange(-1,1.001,step)
+    if rows_per_page is None:
+        rows_per_page=len(df)
 
-    matrix=(y.reshape(1, -1) + x.reshape(-1 ,1))
+    statusPanels = {'statusPanels': [
+    { 'statusPanel': 'agFilteredRowCountComponent', 'align': 'left' },
+    { 'statusPanel': 'agSelectedRowCountComponent', 'align': 'left' },
+    { 'statusPanel': 'agAggregationComponent', 'align': 'left' },
+    ]}
 
-    color_scales=get_plotly_colorscales()
-    for k, v in color_scales.items():
-        if np.isin( k.split('-')[-1], colors_modules):
-            try:
-                fig=px.imshow(matrix,title=k,color_continuous_scale=v)
-                fig.update_xaxes(visible=False)
-                fig.update_yaxes(visible=False)
-                # fig.update_coloraxes(showscale=False)
-                fig.show('browser')
-            except:
-                print('Cannot use: '+ k)
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=rows_per_page)
+    gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc='sum', editable=True, rowMultiSelectWithClick=False, floatingFilter=True)
+    gb.configure_selection('multiple', use_checkbox=True, pre_selected_rows=pre_selected_rows)
+    gb.configure_grid_options(enableRangeSelection=False, statusBar=statusPanels)
+    gb.configure_side_bar(defaultToolPanel='test')    
 
-    print('Done')
+    # Single columns configuration
+    gb.configure_column('Selection', headerCheckboxSelection = True, headerCheckboxSelectionFilteredOnly=True, filter= 'agSetColumnFilter', suppressMenu=True, filterParams=dict (excelMode= 'windows'))
+
+    # for h in hide_cols:
+    gb.configure_columns(hide_cols, hide = True)
+
+    # good
+    gridOptions = gb.build()
+    grid_response = AgGrid(df, gridOptions=gridOptions, 
+                        data_return_mode=DataReturnMode.FILTERED,
+                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+                        reload_data=False,
+                        enable_enterprise_modules=True, allow_unsafe_jscode=True)
+   
+    return grid_response
