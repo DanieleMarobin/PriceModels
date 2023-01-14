@@ -59,7 +59,24 @@ if True:
     today_index=model_df.index[-1]
 
 # Filters and Settings
-if True:        
+if True:   
+
+    with st.form("my_form", clear_on_submit=True):
+        st.write('Test')
+        df_test = pd.DataFrame({'Selection':list(model_df.columns)})
+        grid_response_test = uc.aggrid_table_selector(df_test, rows_per_page=20)
+
+        add_but = st.form_submit_button("Add")
+        sub_but = st.form_submit_button("Subtract")
+        df_x_cols_ref=pd.DataFrame(grid_response_test['selected_rows'])
+
+        if add_but:            
+            st.session_state['test']=list(set(st.session_state['test']+ list(df_x_cols_ref['Selection'])))
+        if sub_but:
+            st.session_state['test']=list(set(st.session_state['test'])-set(df_x_cols_ref['Selection']))
+
+    st.write(st.session_state['test'])
+
     col_y_sel, col_x_sel, col_n_var, col_calc_button = st.columns([1,2,2,0.5])
 
     with col_y_sel:
