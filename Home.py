@@ -62,9 +62,7 @@ if True:
 
 # Filters and Settings
 if True:   
-    col_y_sel, col_x_sel, col_calc_button = st.columns([1,2,2])
-
-
+    col_y_sel, col_x_sel= st.columns([1,3])
 
     with col_y_sel:
         options = list(model_df.columns)
@@ -74,7 +72,7 @@ if True:
         special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
         options=special_vars[:]
         options=options+list(model_df.columns)
-        x_cols = st.multiselect('Selected Variables', options, ['All-Stock to use'], on_change=disable_analysis)
+        x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis)
         
         if 'All' in x_cols:
             x_cols=x_cols+list(model_df.columns)
@@ -86,69 +84,46 @@ if True:
             x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]            
 
         x_cols = list(set(x_cols)-set(special_vars))
-        sel_variables_n=st.container()
-
-        pre_selected_rows=[]
-        x_cols_ref=[]
-
-        # with st.expander('Refine Selection'):   
-        if len(x_cols)>0:              
-            df_col_selection = pd.DataFrame({'Selection':x_cols})
-            pre_selected_rows =list(range(len(x_cols)))
-
-            grid_response = uc.aggrid_table_selector(df_col_selection, rows_per_page=5,pre_selected_rows=pre_selected_rows)
-            df_x_cols_ref=pd.DataFrame(grid_response['selected_rows'])
-            if len(df_x_cols_ref)>0:
-                x_cols_ref=list(df_x_cols_ref['Selection'])
-            else:
-                x_cols_ref=[]
-
-        # st.write(x_cols_ref)
-        x_cols=x_cols_ref[:]
-
-        x_cols=x_cols+[y_col]
-        x_cols = list(set(x_cols)-set(special_vars)) # Remove the 'special_vars'
-
-    with col_calc_button:
-        top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)
-
-        if len(x_cols_ref)>0:
-            # st.write(x_cols_ref)
-            st.write(df_x_cols_ref['Selection'])
-
+        
     
-    
-    with st.form("my_form", clear_on_submit=True):
+    with st.form("my_form"):
         col1, col2, col3 =st.columns([4,1,4])
+
         with col1:
-            # df_test = pd.DataFrame({'Selection':list(model_df.columns)})
-            df_test = pd.DataFrame({'Selection':x_cols})
-            grid_response_test = uc.aggrid_table_selector(df_test, rows_per_page=5)
+            df_search = pd.DataFrame({'Selection':x_cols})
+            grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
 
         with col2:
             add_but = st.form_submit_button("Add")
             sub_but = st.form_submit_button("Subtract")
-            calc_but = st.form_submit_button("Calculate")
-            df_x_cols_ref_test=pd.DataFrame(grid_response_test['selected_rows'])
+            df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
 
-        if add_but:            
-            st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_ref_test['Selection'])))
-        if sub_but:
-            st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_ref_test['Selection']))
+            if add_but:     
+                if len(df_x_cols_search)>0:       
+                    st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
 
         with col3:
-            st.write(st.session_state['col_selection'])
+            df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
+            grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
+            df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
 
+            if sub_but:
+                if len(df_x_cols_selected)>0: 
+                    st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
+                    st.experimental_rerun()
 
-
-
+    # st.write(x_cols)
+    x_cols = list(set(st.session_state['col_selection']))
+    x_cols=x_cols+[y_col]
     
-    st.button('Calculate', on_click=func_calculate)
+    
 
     st.markdown('---')
 
     with st.sidebar:
-        st.button('Get Latest File', on_click=func_reset)
+        st.button('Calculate', on_click=func_calculate)
+        top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)
+        
 
         with st.expander('Analysis Selection',expanded=True):
             sm_analysis = st.checkbox('Scatter Matrix',True)
@@ -215,7 +190,9 @@ if True:
                     sp_add_pred = st.checkbox('Add Prediction', True)
                     if sp_add_pred:
                         sp_pred_size = st.number_input('Prediction Size',1,100,10,1)
-                
+
+        st.button('Get Latest File', on_click=func_reset)        
+
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
 # - if they are in memory, it means they are already sorted

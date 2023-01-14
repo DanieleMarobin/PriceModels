@@ -172,7 +172,7 @@ def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='st
     fig.add_trace(go.Scatter(name=name,x=[x], y=[y], mode = 'markers', marker_symbol = symbol,marker_size = size, marker_color=color, hovertemplate=hovertemplate), row=row, col=col)
     return y
 
-def aggrid_table_selector(df,rows_per_page=None, pre_selected_rows=[]):
+def aggrid_var_search(df,rows_per_page=None, pre_selected_rows=[]):
     # Decide which columns to show
     visible_cols=list(df.columns)
     hide_cols=list(set(df.columns)-set(visible_cols))
@@ -196,7 +196,7 @@ def aggrid_table_selector(df,rows_per_page=None, pre_selected_rows=[]):
     gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc='sum', editable=True, rowMultiSelectWithClick=False, floatingFilter=True)
     gb.configure_selection('multiple', use_checkbox=True, pre_selected_rows=pre_selected_rows)
     gb.configure_grid_options(enableRangeSelection=False, statusBar=statusPanels)
-    gb.configure_side_bar(defaultToolPanel='test')    
+    # gb.configure_side_bar(defaultToolPanel='test')    
 
     # Single columns configuration
     gb.configure_column('Selection', headerCheckboxSelection = True, headerCheckboxSelectionFilteredOnly=True, filter= 'agSetColumnFilter', suppressMenu=True, filterParams=dict (excelMode= 'windows'))
@@ -209,8 +209,50 @@ def aggrid_table_selector(df,rows_per_page=None, pre_selected_rows=[]):
     grid_response = AgGrid(df, gridOptions=gridOptions, 
                         data_return_mode=DataReturnMode.FILTERED,
                         update_mode=GridUpdateMode.SELECTION_CHANGED,
-                        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
-                        reload_data=False,
-                        enable_enterprise_modules=True, allow_unsafe_jscode=True)
+                        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
+                        reload_data=False,enable_enterprise_modules=True, allow_unsafe_jscode=True)
+   
+    return grid_response
+
+
+def aggrid_var_selected(df,rows_per_page=None, pre_selected_rows=[]):
+    # Decide which columns to show
+    visible_cols=list(df.columns)
+    hide_cols=list(set(df.columns)-set(visible_cols))
+
+    # Sort the columns
+    sort_cols=visible_cols
+    sort_cols.extend(hide_cols)
+    df=df[sort_cols]
+
+    if rows_per_page is None:
+        rows_per_page=len(df)
+
+    statusPanels = {'statusPanels': [
+    { 'statusPanel': 'agFilteredRowCountComponent', 'align': 'left' },
+    { 'statusPanel': 'agSelectedRowCountComponent', 'align': 'left' },
+    { 'statusPanel': 'agAggregationComponent', 'align': 'left' },
+    ]}
+
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_pagination(paginationAutoPageSize=False, paginationPageSize=rows_per_page)
+    gb.configure_default_column(groupable=True, value=True, enableRowGroup=True, aggFunc='sum', editable=True, rowMultiSelectWithClick=False, floatingFilter=True)
+    gb.configure_selection('multiple', use_checkbox=False, pre_selected_rows=pre_selected_rows)
+    gb.configure_grid_options(enableRangeSelection=False, statusBar=statusPanels)
+    # gb.configure_side_bar(defaultToolPanel='test')    
+
+    # Single columns configuration
+    gb.configure_column('Selection', headerCheckboxSelection = True, headerCheckboxSelectionFilteredOnly=True, filter= 'agSetColumnFilter', suppressMenu=True, filterParams=dict (excelMode= 'windows'))
+
+    # for h in hide_cols:
+    gb.configure_columns(hide_cols, hide = True)
+
+    # good
+    gridOptions = gb.build()
+    grid_response = AgGrid(df, gridOptions=gridOptions, 
+                        data_return_mode=DataReturnMode.FILTERED,
+                        update_mode=GridUpdateMode.SELECTION_CHANGED,
+                        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_ALL_COLUMNS_TO_VIEW,
+                        reload_data=False,enable_enterprise_modules=True, allow_unsafe_jscode=True)
    
     return grid_response
