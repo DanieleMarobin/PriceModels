@@ -33,7 +33,10 @@ if True:
 
     def disable_analysis():
         st.session_state['run_analysis']=False
-        
+    
+    def clear_multi():
+        st.session_state.multiselect = []
+        return
 
     def del_sm():
          if ('scatter_matrix' in st.session_state):
@@ -72,7 +75,7 @@ if True:
         special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
         options=special_vars[:]
         options=options+list(model_df.columns)
-        x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis)
+        x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis, key='multiselect')
         add_to_selection=True
         
         if 'All' in x_cols:
@@ -106,7 +109,7 @@ if True:
 
             with col2:
                 add_but = st.form_submit_button("Select")
-                sub_but = st.form_submit_button("Remove")
+                sub_but = st.form_submit_button("Remove", on_click=clear_multi)
                 df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
 
                 if add_but:     
@@ -114,7 +117,7 @@ if True:
                         st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
         else:
             with col2:
-                sub_but = st.form_submit_button("Remove")
+                sub_but = st.form_submit_button("Remove", on_click=clear_multi)
 
         with col1:
             df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
