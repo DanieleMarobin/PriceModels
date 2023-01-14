@@ -43,6 +43,8 @@ if True:
 if True:
     if 'run_analysis' not in st.session_state:
         st.session_state['run_analysis']=True
+    if 'test' not in st.session_state:
+        st.session_state['test']=[]
 
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
