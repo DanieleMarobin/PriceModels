@@ -89,18 +89,22 @@ if True:
     with st.form("my_form"):
         col1, col2, col3 =st.columns([4,1,4])
 
-        with col1:
-            df_search = pd.DataFrame({'Selection':x_cols})
-            grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
+        if len(x_cols)>0:
+            with col1:
+                df_search = pd.DataFrame({'Selection':x_cols})
+                grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
 
-        with col2:
-            add_but = st.form_submit_button("Add")
-            sub_but = st.form_submit_button("Subtract")
-            df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
+            with col2:
+                add_but = st.form_submit_button("Select")
+                sub_but = st.form_submit_button("Remove")
+                df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
 
-            if add_but:     
-                if len(df_x_cols_search)>0:       
-                    st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
+                if add_but:     
+                    if len(df_x_cols_search)>0:       
+                        st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
+        else:
+            with col2:
+                sub_but = st.form_submit_button("Subtract")
 
         with col3:
             df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
