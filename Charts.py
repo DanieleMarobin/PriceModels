@@ -70,7 +70,7 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     return fig
 
-def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=True, vertical_spacing=0.03, horizontal_spacing=0.01, marker_size=2, today_index=None, today_size=5):
+def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=True, vertical_spacing=0.03, horizontal_spacing=0.01, marker_size=2, today_index=None, today_size=5, prediction_index=None, prediction_size=5):
     cols=list(df.columns)
 
     if add_title:
@@ -120,13 +120,19 @@ def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=
 
             if ((add_trendline) | (add_title)):
                 model = sm.OLS(y.values, sm.add_constant(x.values), missing="drop").fit()
-                r_sq=str(round(model.rsquared,3))
-                hovertemplate="<br>".join(['R-Squared', r_sq, "<extra></extra>"])
+                r_sq_str="Rsq "+str(round(100*model.rsquared,1))
+                hovertemplate="<br>".join([r_sq_str, "<extra></extra>"])
 
                 if add_trendline:
                     fig.add_trace(go.Scatter(x=x, y=model.predict(), mode='lines',hovertemplate=hovertemplate, line=dict(color='black', width=0.5)), row=rr, col=cc)
+                    pred_str=''
+                    print('prediction_index',prediction_index)
+                    
+                    if prediction_index is not None:
+                        pred_str= 'Pred '+str(round(add_today(fig,df,xc,yc,prediction_index, size=prediction_size, color='black', symbol='x', name='Prediction', row=rr, col=cc,model=model),1))
+                    
                 if add_title:
-                    fig.layout.annotations[anno_count].update(text="R-sq = "+r_sq)
+                    fig.layout.annotations[anno_count].update(text=r_sq_str+ ' '+pred_str)
                     anno_count+=1
     
     fig.update_layout(showlegend=False)

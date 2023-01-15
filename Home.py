@@ -62,6 +62,7 @@ if True:
     model_df_instr=mp.model_df_instructions(df_model_all)
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
     today_index=model_df.index[-1]
+    # st.write(today_index)
 
 # Filters and Settings
 if True:   
@@ -135,8 +136,6 @@ if True:
     x_cols = list(set(st.session_state['col_selection']))
     x_cols=x_cols+[y_col]
     
-    
-
     st.markdown('---')
 
     with st.sidebar:
@@ -164,14 +163,29 @@ if True:
                     sm_color = st.color_picker('Single Color', '#2929E8',on_change=del_sm)
 
                 with tab3:
-                    sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)
-                    sm_title = st.checkbox('Add R-Squared & Prediction',True,on_change=del_sm)
-                    sm_add_today = st.checkbox('Add Today',True, on_change=del_sm)
-                    sm_today_size = st.number_input('Today Marker Size',1,100,10,1,key='smt', on_change=del_sm)
+                    sm_title=False
 
                     sm_today_index=None
+                    sm_today_size=1
+
+                    sm_pred_index=None
+                    sm_pred_size=1
+
+                    sm_add_today = st.checkbox('Add Today',True, on_change=del_sm)
                     if sm_add_today:
                         sm_today_index=today_index
+                        sm_today_size = st.number_input('Today Marker Size',1,100,10,1,key='smt', on_change=del_sm)
+
+                    
+                    sm_trendline = st.checkbox('Add Trendline',True,on_change=del_sm)                    
+                    if sm_trendline:
+                        sm_title = st.checkbox('Add Title',True,on_change=del_sm)
+                        sm_add_pred = st.checkbox('Add Prediction', True,on_change=del_sm)
+
+                        if sm_add_pred:
+                            sm_pred_index=today_index
+                            sm_pred_size = st.number_input('Prediction Size',1,100,5,1,key='smps', on_change=del_sm)
+
 
         if hm_analysis:
             with st.expander('Heat Map Settings'):
@@ -241,7 +255,7 @@ if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
     else:
         with st.spinner('Calculating the Scatter Matrix...'):
             df=model_df[[y_col]+x_cols]                              
-            st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df, marker_color=sm_color, add_trendline=sm_trendline, add_title=sm_title, vertical_spacing=sm_vert, horizontal_spacing=sm_hor, today_index=sm_today_index, today_size=sm_today_size)
+            st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df, marker_color=sm_color, add_trendline=sm_trendline, add_title=sm_title, vertical_spacing=sm_vert, horizontal_spacing=sm_hor, today_index=sm_today_index, today_size=sm_today_size, prediction_index=sm_pred_index,prediction_size=sm_pred_size)
             fig=st.session_state['scatter_matrix']
             
     fig.update_layout(height=sm_height)
