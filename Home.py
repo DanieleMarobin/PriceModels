@@ -4,7 +4,7 @@ if True:
 
     import numpy as np
     import pandas as pd
-    import openai
+    
     import streamlit as st
     import plotly.express as px
     import plotly.graph_objects as go
@@ -39,6 +39,9 @@ if True:
         st.session_state.multiselect = []
         return
 
+    def enable_chatgpt():
+        st.session_state['chatgpt_run']=True
+
     def del_sm():
          if ('scatter_matrix' in st.session_state):
             del st.session_state['scatter_matrix']
@@ -51,6 +54,10 @@ if True:
         st.session_state['col_selection']=[]
     if 'chatgpt_key' not in st.session_state:
         st.session_state['chatgpt_key']=gd.read_csv('Data/ChatGPT/Info.txt').columns[0]
+    if 'chatgpt_run' not in st.session_state:
+        st.session_state['chatgpt_run']=True
+    if 'chatgpt_selection' not in st.session_state:
+        st.session_state['chatgpt_selection']=[]
 
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
@@ -59,14 +66,6 @@ if True:
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
 
-    # Define OpenAI API key 
-    openai.api_key = st.session_state['chatgpt_key']
-
-    # Set up the model and prompt
-    model_engine = "text-davinci-003"
-
-    
-    
     
 # Retrieve the Data
 if True:
@@ -78,16 +77,35 @@ if True:
 
 # Filters and Settings
 if True:   
-    chatgpt_prompt=st.text_area('Ask in simple term')
-    if len(chatgpt_prompt)>0:
-        completion = openai.Completion.create(engine=model_engine, prompt=chatgpt_prompt,max_tokens=1024,n=1,stop=None,temperature=0.5)
-        response = completion.choices[0].text
-        st.write(response)
+    options = list(model_df.columns)
+    gpt_cols=[]
+
+    selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)',on_change=enable_chatgpt)
+    if ((len(selection_request)>0) & (st.session_state['chatgpt_run'])):
+        with st.expander('ChatGPT Answer',expanded=False):
+            st.write(dt.now())
+            ChatGPT_request=fu.prepare_ChatGPT_selection_request(selection_request, options[0:100])
+            st.write('ChatGPT_request N:', len(ChatGPT_request))
+            st.write(ChatGPT_request)
+
+            ChatGPT_selection = fu.ChatGPT_answer(ChatGPT_request, st.session_state['chatgpt_key'])
+            st.write('ChatGPT Answer:')
+            st.write(ChatGPT_selection)
+            st.session_state['chatgpt_run']=False
+
+            st.write('Columns Extraction')
+            gpt_cols=fu.extract_cols_from_ChatGPT_answer(ChatGPT_selection)
+            st.write(gpt_cols)
+
+            st.write('Correctly identified columns')
+            gpt_cols = list(set(gpt_cols).intersection(options))
+            st.write(gpt_cols)
+            st.session_state['chatgpt_selection']=gpt_cols
+
 
     col_y_sel, col_x_sel= st.columns([1,3])
 
-    with col_y_sel:
-        options = list(model_df.columns)
+    with col_y_sel:        
         y_col = st.selectbox('Target',options, options.index('a_price_c '), on_change=disable_analysis)
 
     with col_x_sel:
@@ -99,6 +117,9 @@ if True:
         draw_search=False
         draw_selected=False
         
+        if len(st.session_state['chatgpt_selection'])>0:
+            x_cols=x_cols+st.session_state['chatgpt_selection']
+            draw_search=True # if False, it puts it immediately into the selected
         if 'All' in x_cols:
             x_cols=x_cols+list(model_df.columns)
             draw_search=True
@@ -110,9 +131,9 @@ if True:
             draw_search=True
         if 'All-Yields' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
-            draw_search=True        
+            draw_search=True
 
-        x_cols = list(set(x_cols)-set(special_vars))
+        x_cols = list(set(x_cols)-set(special_vars)) # here
 
         if ((not draw_search) & (len(x_cols)>0)):
             st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
@@ -133,9 +154,11 @@ if True:
                     sub_but = st.form_submit_button("Remove", on_click=clear_multi)
                     df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
 
-                    if add_but:     
-                        if len(df_x_cols_search)>0:       
+                    if add_but:
+                        if len(df_x_cols_search)>0:                            
                             st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
+                            st.session_state['chatgpt_selection']=[]
+                            st.experimental_rerun()
             else:
                 with col2:
                     sub_but = st.form_submit_button("Remove", on_click=clear_multi)
@@ -252,7 +275,7 @@ if True:
 #       2) sort them
 #       3) store them in memory    
     if ('x_cols' in st.session_state):
-        x_cols=st.session_state['x_cols']    
+        x_cols=st.session_state['x_cols']
     else:                
         with st.spinner('Calculating the top '+str(top_n_vars) + ' variables...'):
             # 1)
