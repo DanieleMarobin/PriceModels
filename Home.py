@@ -289,7 +289,7 @@ if ((hm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
     st.plotly_chart(fig,use_container_width=True)
 
 
-    fig=uc.chart_heat_map(heat_map_months,sorted_cols=sorted_cols,title=y_col+ ' (r-squared monthly variation)',x_col='report',y_col='v1',z_col='value',subtract='all', abs=True, sort_by='all',  transpose=False, color_continuous_scale=color_scales['RdBu-sequential'],range_color=(-20,20), format_labels = '%{z:.1f}')
+    fig=uc.chart_heat_map(heat_map_months,sorted_cols=sorted_cols,title=y_col+ ' (r-squared monthly variation)',x_col='report',y_col='v1',z_col='value',subtract='all', abs=True, sort_by='all_abs',  transpose=False, color_continuous_scale=color_scales['RdBu-sequential'],range_color=(-20,20), format_labels = '%{z:.1f}')
     fig.update_layout(coloraxis_showscale=False, xaxis=dict(titlefont=dict(size=hm_font_size),tickfont=dict(size=hm_font_size),side='top'),yaxis=dict(titlefont=dict(size=hm_font_size),tickfont=dict(size=hm_font_size)))
     fig.update_layout(height=hm_height)
     st.plotly_chart(fig,use_container_width=True)
