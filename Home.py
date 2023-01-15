@@ -4,6 +4,7 @@ if True:
 
     import numpy as np
     import pandas as pd
+    import openai
     import streamlit as st
     import plotly.express as px
     import plotly.graph_objects as go
@@ -55,6 +56,15 @@ if True:
     
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
+
+    # Define OpenAI API key 
+    openai.api_key = "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"
+
+    # Set up the model and prompt
+    model_engine = "text-davinci-003"
+
+    
+    
     
 # Retrieve the Data
 if True:
@@ -66,6 +76,12 @@ if True:
 
 # Filters and Settings
 if True:   
+    chatgpt_prompt=st.text_area('Ask in simple term')
+    if len(chatgpt_prompt)>0:
+        completion = openai.Completion.create(engine=model_engine, prompt=chatgpt_prompt,max_tokens=1024,n=1,stop=None,temperature=0.5)
+        response = completion.choices[0].text
+        st.write(response)
+
     col_y_sel, col_x_sel= st.columns([1,3])
 
     with col_y_sel:

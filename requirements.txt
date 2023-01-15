@@ -7,3 +7,4 @@ protobuf==3.19.4
 statsmodels==0.13.2
 streamlit==1.15.2
 streamlit_aggrid==0.3.3
+openai==0.26.1
