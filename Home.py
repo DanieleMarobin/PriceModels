@@ -49,6 +49,8 @@ if True:
         st.session_state['run_analysis']=True
     if 'col_selection' not in st.session_state:
         st.session_state['col_selection']=[]
+    if 'chatgpt_key' not in st.session_state:
+        st.session_state['chatgpt_key']=gd.read_csv('Data/ChatGPT/Info.txt').columns[0]
 
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
@@ -58,7 +60,7 @@ if True:
     color_scales = uc.get_plotly_colorscales()
 
     # Define OpenAI API key 
-    openai.api_key = "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"
+    openai.api_key = st.session_state['chatgpt_key']
 
     # Set up the model and prompt
     model_engine = "text-davinci-003"
