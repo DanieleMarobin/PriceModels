@@ -173,6 +173,8 @@ if True:
             print(dt.now(),'voice_request:',voice_request)
             print(dt.now(),'st.session_state[chatgpt_run]:',st.session_state['chatgpt_run'])
 
+            # carry_on_conversation = st.checkbox('Carry on with the same conversation')
+
         # ChatGPT
         if True:        
             gpt_cols=[]
@@ -185,17 +187,20 @@ if True:
 
 
     if st.session_state['chatgpt_run']:
+        options = list(model_df.columns)
         with st.expander('ChatGPT Diagnostics',expanded=False):
 
             st.write('Request Time:', dt.now())
-            ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100)
+            ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100, False)
             prompts_n=[]
             for r in ChatGPT_requests:
                 prompts_n.append(len(r))
 
             st.write('Prompts Lenghts:')
             st.write(prompts_n)
-            # st.write(ChatGPT_requests)
+
+            st.write('ChatGPT Question:')
+            st.write(ChatGPT_requests)
 
             ChatGPT_selection = fu.ChatGPT_parallel_answers(ChatGPT_requests, st.session_state['chatgpt_key'])
             st.write('ChatGPT Answer:')
@@ -213,53 +218,52 @@ if True:
 
             st.session_state['chatgpt_run']=False    
 
-    
     if len(st.session_state['chatgpt_selection'])>0:
         x_cols=x_cols+st.session_state['chatgpt_selection']
         draw_search=True
 
-    if ((draw_search) | (draw_selected)):
-        with st.form("my_form"):
-            col1, col2, col3 =st.columns([4,1,4])
 
-            if draw_search:
-                with col3:
-                    df_search = pd.DataFrame({'Selection':x_cols})
-                    grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
+    with st.expander('Selected Variables',expanded=True):
+        if ((draw_search) | (draw_selected)):
+            with st.form("my_form"):
+                col1, col2, col3 =st.columns([4,1,4])
 
-                with col2:
-                    add_but = st.form_submit_button("Add to selection")
-                    sub_but = st.form_submit_button("Remove from list", on_click=clear_multi)
-                    clean_but = st.form_submit_button("Clean Search", on_click=clean_selections)
-                    df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])                    
+                if draw_search:
+                    with col3:
+                        df_search = pd.DataFrame({'Selection':x_cols})
+                        grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
 
-                    if add_but:                        
-                        if len(df_x_cols_search)>0:
-                            print(dt.now(),'df_x_cols_search[Selection]',df_x_cols_search['Selection'])
-                            st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
-                            st.session_state['chatgpt_selection']=[]
+                    with col2:
+                        add_but = st.form_submit_button("Add to selection")
+                        sub_but = st.form_submit_button("Remove from list", on_click=clear_multi)
+                        clean_but = st.form_submit_button("Clean Search", on_click=clean_selections)
+                        df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])                    
+
+                        if add_but:                        
+                            if len(df_x_cols_search)>0:
+                                print(dt.now(),'df_x_cols_search[Selection]',df_x_cols_search['Selection'])
+                                st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
+                                st.session_state['chatgpt_selection']=[]
+                                st.experimental_rerun()
+                else:
+                    with col2:
+                        sub_but = st.form_submit_button("Remove", on_click=clear_multi)
+
+                with col1:
+                    df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
+                    grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
+                    df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
+
+                    if sub_but:
+                        if len(df_x_cols_selected)>0: 
+                            st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
+                            if len(st.session_state['col_selection'])==0:
+                                del st.session_state['x_cols']
                             st.experimental_rerun()
-            else:
-                with col2:
-                    sub_but = st.form_submit_button("Remove", on_click=clear_multi)
 
-            with col1:
-                df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
-                grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
-                df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
-
-                if sub_but:
-                    if len(df_x_cols_selected)>0: 
-                        st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
-                        if len(st.session_state['col_selection'])==0:
-                            del st.session_state['x_cols']
-                        st.experimental_rerun()
-
-    # st.write(x_cols)
-    x_cols = list(set(st.session_state['col_selection']))
-    x_cols=x_cols+[y_col]
-    
-    st.markdown('---')
+        # st.write(x_cols)
+        x_cols = list(set(st.session_state['col_selection']))
+        x_cols=x_cols+[y_col]    
 
     with st.sidebar:
         st.button('Calculate', on_click=func_calculate)

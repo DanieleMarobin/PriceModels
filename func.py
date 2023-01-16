@@ -28,7 +28,7 @@ def get_data():
     return df_model_all
 
 
-def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size=100):
+def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size=100, carry_on_conversation=False):
     """
     as ChatGPT has around 4000 input tokens limitation (https://beta.openai.com/docs/models/gpt-3)
     I need to split the columns list in batches
@@ -36,20 +36,25 @@ def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size
     https://blog.devgenius.io/chatgpt-how-to-use-it-with-python-5d729ac34c0d
     """
 
-    subsets_col_options=[]
-    for i in range(0, len(col_options), subset_size):
-        subsets_col_options=subsets_col_options+[col_options[i:i+subset_size]]
-    
     requests=[]
+    if (carry_on_conversation):
+        requests=requests+[user_request]
 
-    for s in subsets_col_options:
-        # fo='From the items in this python list '
-        fo='From the variables in this python list '
-        fo=fo+'['+ ','.join(s) +']'
-        fo=fo+user_request
-        fo=fo+' and put the result in a python list format'
+    else:
+        subsets_col_options=[]
+        for i in range(0, len(col_options), subset_size):
+            subsets_col_options=subsets_col_options+[col_options[i:i+subset_size]]
+        
+        requests=[]
 
-        requests=requests+[fo]
+        for s in subsets_col_options:
+            fo='From the items in this python list '
+            # fo='From the variables in this python list '
+            fo=fo+'['+ ','.join(s) +']'
+            fo=fo+user_request
+            fo=fo+' and put the result in a python list format'
+
+            requests=requests+[fo]
 
     return requests
 
