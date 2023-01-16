@@ -82,23 +82,30 @@ if True:
 
     selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)',on_change=enable_chatgpt)
     if ((len(selection_request)>0) & (st.session_state['chatgpt_run'])):
-        with st.expander('ChatGPT Answer',expanded=False):
-            st.write(dt.now())
-            ChatGPT_request=fu.prepare_ChatGPT_selection_request(selection_request, options[0:100])
-            st.write('ChatGPT_request N:', len(ChatGPT_request))
-            st.write(ChatGPT_request)
 
-            ChatGPT_selection = fu.ChatGPT_answer(ChatGPT_request, st.session_state['chatgpt_key'])
+        with st.expander('ChatGPT Diagnostics',expanded=False):
+
+            st.write('Request Time:',dt.now())
+            ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100)
+            prompts_n=[]
+            for r in ChatGPT_requests:
+                prompts_n.append(len(r))
+
+            st.write('Prompts Lenghts:')
+            st.write(prompts_n)
+            # st.write(ChatGPT_requests)
+
+            ChatGPT_selection = fu.ChatGPT_parallel_answers(ChatGPT_requests, st.session_state['chatgpt_key'])
             st.write('ChatGPT Answer:')
             st.write(ChatGPT_selection)
             st.session_state['chatgpt_run']=False
 
             st.write('Columns Extraction')
-            gpt_cols=fu.extract_cols_from_ChatGPT_answer(ChatGPT_selection)
+            gpt_cols=fu.extract_cols_from_ChatGPT_answers(ChatGPT_selection)
             st.write(gpt_cols)
 
             st.write('Correctly identified columns')
-            gpt_cols = list(set(gpt_cols).intersection(options))
+            gpt_cols = fu.maximize_columns_matching(gpt_cols, options)
             st.write(gpt_cols)
             st.session_state['chatgpt_selection']=gpt_cols
 

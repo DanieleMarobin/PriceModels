@@ -212,7 +212,7 @@ if True:
         df_model_all['quickstats_soybeans_yield_deviation']=100.0*(df_model_all['wasde_us beans nc-yield-']/df_model_all['quickstats_soybeans_trend_yield']-1.0)
 
         # Expressions
-        df_model_all=evaluate_expressions(df_model_all, instructions['expressions'])
+        # df_model_all=evaluate_expressions(df_model_all, instructions['expressions'])
 
         # Adding Shifts
         dfs=[df_model_all]
