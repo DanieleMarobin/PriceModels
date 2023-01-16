@@ -82,7 +82,7 @@ if True:
     col_y_sel, col_x_sel= st.columns([1,3])
 
     with col_y_sel:       
-        y_col = st.selectbox('Target',options, options.index('a_price_c '), on_change=disable_analysis)
+        y_col = st.selectbox('Target',options, options.index('c a'), on_change=disable_analysis)
 
     with col_x_sel:
         special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
@@ -91,8 +91,7 @@ if True:
         x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis, key='multiselect')
         
         draw_search=False
-        draw_selected=False
-        
+        draw_selected=False        
 
         # if len(st.session_state['chatgpt_selection'])>0:
         #     x_cols=x_cols+st.session_state['chatgpt_selection']

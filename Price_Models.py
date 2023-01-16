@@ -168,17 +168,18 @@ if True:
         # Columns to use
         cols_to_use=[]
         cols_to_use=cols_to_use+['date','crop_year','month']
-        # cols_to_use=cols_to_use+[c for c in df_model_all.columns] # everything
-        cols_to_use=cols_to_use+[c for c in df_model_all.columns if (('price_' in c) & ('security' not in c))]
-        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'fund' in c] # funds
-        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde  
-        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'quickstats' in c] # quickstats      
+        cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'security' not in c] # everything
+
+        # cols_to_use=cols_to_use+[c for c in df_model_all.columns if (('price_' in c) & ('security' not in c))]
+        # cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'fund' in c] # funds
+        # cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'wasde' in c] # wasde  
+        # cols_to_use=cols_to_use+[c for c in df_model_all.columns if 'quickstats' in c] # quickstats      
         # cols_to_use=cols_to_use+[c for c in cols_to_shift if (('price_' in c) & ('security' not in c))] # all the prices (as one of them will be the 'y_col' to model)
         # cols_to_use=cols_to_use+[c+'_shift1' for c in cols_to_shift if 'security' not in c] # shif1 columns
 
         # Expressions
         expressions=[]
-        expressions=expressions+[{'symbols':['k_price_c ','n_price_c '],'expression':'k_price_c -n_price_c '}]        
+        expressions=expressions+[{'symbols':['c k','c n'],'expression':'c k-c n '}]         
         
         fo['first_training_date']=first_training_date
         fo['last_training_date']=last_training_date
@@ -200,16 +201,14 @@ if True:
 
         # Additional Columns
         df_model_all['date']=df_model_all.index
-        # df_model_all['date'] = pd.to_numeric(df_model_all['date'])
-        # df_model_all['date'] = range(len(df_model_all))
         df_model_all['date']=df_model_all['date'].map(dt.toordinal)
 
         df_model_all['month']=df_model_all.index.month
-        df_model_all['crop_year']=df_model_all['wasde_us corn nc-crop year-']
+        df_model_all['crop_year']=df_model_all['us corn nc-crop year-_wasde']
 
-        df_model_all['quickstats_corn_yield_deviation']=100.0*(df_model_all['wasde_us corn nc-yield-']/df_model_all['quickstats_corn_trend_yield']-1.0)        
-        df_model_all['quickstats_wheat_yield_deviation']=100.0*(df_model_all['wasde_us wheat nc-yield-']/df_model_all['quickstats_wheat_trend_yield']-1.0)
-        df_model_all['quickstats_soybeans_yield_deviation']=100.0*(df_model_all['wasde_us beans nc-yield-']/df_model_all['quickstats_soybeans_trend_yield']-1.0)
+        df_model_all['us corn_yield_deviation_quickstats']=100.0*(df_model_all['us corn nc-yield-_wasde']/df_model_all['us corn_trend_yield_quickstats']-1.0)        
+        df_model_all['us wheat_yield_deviation_quickstats']=100.0*(df_model_all['us wheat nc-yield-_wasde']/df_model_all['us wheat_trend_yield_quickstats']-1.0)
+        df_model_all['us soybeans_yield_deviation_quickstats']=100.0*(df_model_all['us beans nc-yield-_wasde']/df_model_all['us soybeans_trend_yield_quickstats']-1.0)
 
         # Expressions
         # df_model_all=evaluate_expressions(df_model_all, instructions['expressions'])
