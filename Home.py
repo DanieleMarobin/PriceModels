@@ -6,6 +6,8 @@ if True:
     import pandas as pd
     
     import streamlit as st
+    from bokeh.models import CustomJS, RadioButtonGroup
+    from streamlit_bokeh_events import streamlit_bokeh_events    
     import plotly.express as px
     import plotly.graph_objects as go
 
@@ -41,7 +43,6 @@ if True:
 
     def clean_selections():
         st.session_state['chatgpt_selection']=[]
-        st.session_state['voice_recognition_run']=''
 
     def del_sm():
          if ('scatter_matrix' in st.session_state):
@@ -59,8 +60,6 @@ if True:
         st.session_state['chatgpt_run']=False
     if 'chatgpt_selection' not in st.session_state:
         st.session_state['chatgpt_selection']=[]
-    if 'voice_recognition_run' not in st.session_state:
-        st.session_state['voice_recognition_run']=''
 
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
@@ -69,51 +68,6 @@ if True:
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
 
-
-
-# Voice Recognition Test
-print('-----------------------------------')
-if True:
-    from bokeh.models.widgets import Button
-    from bokeh.models import CustomJS
-    from streamlit_bokeh_events import streamlit_bokeh_events
-
-    stt_button = Button(label="Ask using your voice", width=100)
-    stt_button.js_on_event("button_click", 
-        CustomJS(code="""
-        var recognition = new webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-    
-        recognition.onresult = function (e) 
-        {
-            var value = "";
-            for (var i = e.resultIndex; i < e.results.length; ++i) 
-            {
-                if (e.results[i].isFinal) {
-                    value += e.results[i][0].transcript;
-                }
-            }
-            if ( value != "") 
-            {
-                document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: value}));
-            }
-        }
-        recognition.start();
-        """))
-
-    voice_recognition_results = streamlit_bokeh_events(stt_button,events="GET_TEXT",key="listen",refresh_on_update=True,override_height=50,debounce_time=0)
-        
-    print(dt.now(),'voice_recognition_results',voice_recognition_results)
-
-    voice_request=''
-    if voice_recognition_results:
-        if "GET_TEXT" in voice_recognition_results:
-            voice_request=voice_recognition_results.get("GET_TEXT")
-            st.write('st.session_state[voice_recognition_run]:', st.session_state['voice_recognition_run'])
-            st.write('voice_request:', voice_request)
-
-    st.write("---")
 
 # Retrieve the Data
 if True:
@@ -124,24 +78,111 @@ if True:
 
 # Filters and Settings
 if True:    
-    print(dt.now(),'st.session_state[voice_recognition_run]:',st.session_state['voice_recognition_run'])
-    print(dt.now(),'voice_request:',voice_request)
-    print(dt.now(),'st.session_state[chatgpt_run]:',st.session_state['chatgpt_run'])
     options = list(model_df.columns)
-    gpt_cols=[]
+    col_y_sel, col_x_sel= st.columns([1,3])
+
+    with col_y_sel:       
+        y_col = st.selectbox('Target',options, options.index('a_price_c '), on_change=disable_analysis)
+
+    with col_x_sel:
+        special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
+        options=special_vars[:]
+        options=options+list(model_df.columns)
+        x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis, key='multiselect')
+        
+        draw_search=False
+        draw_selected=False
+        
+
+        # if len(st.session_state['chatgpt_selection'])>0:
+        #     x_cols=x_cols+st.session_state['chatgpt_selection']
+        #     draw_search=True
+        if 'All' in x_cols:
+            x_cols=x_cols+list(model_df.columns)
+            draw_search=True
+        if 'All-Stock to use' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'stock to use' in c]
+            draw_search=True
+        if 'All-Ending Stocks' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'ending stock' in c]
+            draw_search=True
+        if 'All-Yields' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
+            draw_search=True
+
+        x_cols = list(set(x_cols)-set(special_vars)) # here
+
+        if ((not draw_search) & (len(x_cols)>0)):
+            st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
+        
+        draw_selected=len(st.session_state['col_selection'])>0
+            
     
-    selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)')
-    send_request = st.button('Send Request')
+    with st.expander('Artificial Intelligence Selection', expanded=False):
+        # Voice Recognition
+        if True:
+            print('-----------------------------------')
 
-    if ((send_request) & (len(selection_request)>0)):
-        st.session_state['chatgpt_run']=True
-    st.write('---')
+            LABELS = ["Voice Search:", "Speak", "Clear"]
 
-    print(dt.now(),'selection_request:',selection_request)
-    print(dt.now(),'len(selection_request:)',len(selection_request))
-    # if len(st.session_state['voice_recognition_run'])>0:
-    #     selection_request=st.session_state['voice_recognition_run']
-    #     st.session_state['chatgpt_run']=True
+            radio_button_group = RadioButtonGroup(labels=LABELS, active=0)
+            radio_button_group.js_on_click(CustomJS(code="""        
+                console.log('radio_button_group: active=' + this.active, this.toString())
+
+                if (this.active==1)
+                {
+                    var recognition = new webkitSpeechRecognition();
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                
+                    recognition.onresult = function (e) 
+                    {
+                        var value = "";
+                        for (var i = e.resultIndex; i < e.results.length; ++i) 
+                        {
+                            if (e.results[i].isFinal) {
+                                value += e.results[i][0].transcript;
+                            }
+                        }
+                        if ( value != "") 
+                        {
+                            document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: value}));
+                        }
+                    }
+                    recognition.start();
+                }
+                else if (this.active==2)
+                {
+                    var value = "Clear"
+                    document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: value}));
+                }        
+            """))
+
+            voice_recognition_results = streamlit_bokeh_events(radio_button_group,events="GET_TEXT",key='hard_issue', override_height=37,debounce_time=0)
+
+            voice_request=''
+            if voice_recognition_results:
+                if "GET_TEXT" in voice_recognition_results:
+                    voice_request=voice_recognition_results.get("GET_TEXT")
+
+                    if (voice_request=='Clear'):
+                        voice_request=''
+                    else:
+                        print(dt.now(),'voice_request:',voice_request)
+
+            print(dt.now(),'voice_request:',voice_request)
+            print(dt.now(),'st.session_state[chatgpt_run]:',st.session_state['chatgpt_run'])
+
+        # ChatGPT
+        if True:        
+            gpt_cols=[]
+            
+            selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)', voice_request)
+            send_request = st.button('Send Request')
+
+            if ((send_request) & (len(selection_request)>0)):
+                st.session_state['chatgpt_run']=True
+
 
     if st.session_state['chatgpt_run']:
         with st.expander('ChatGPT Diagnostics',expanded=False):
@@ -170,48 +211,13 @@ if True:
             st.write(gpt_cols)
             st.session_state['chatgpt_selection']=gpt_cols
 
-            st.session_state['voice_recognition_run']=''
-            st.session_state['chatgpt_run']=False
-            voice_recognition_results['GET_TEXT']=''
+            st.session_state['chatgpt_run']=False    
 
-
-    col_y_sel, col_x_sel= st.columns([1,3])
-
-    with col_y_sel:        
-        y_col = st.selectbox('Target',options, options.index('a_price_c '), on_change=disable_analysis)
-
-    with col_x_sel:
-        special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
-        options=special_vars[:]
-        options=options+list(model_df.columns)
-        x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis, key='multiselect')
-        
-        draw_search=False
-        draw_selected=False
-        
-        if len(st.session_state['chatgpt_selection'])>0:
-            x_cols=x_cols+st.session_state['chatgpt_selection']
-            draw_search=True # if False, it puts it immediately into the selected
-        if 'All' in x_cols:
-            x_cols=x_cols+list(model_df.columns)
-            draw_search=True
-        if 'All-Stock to use' in x_cols:
-            x_cols=x_cols+[c for c in model_df.columns if 'stock to use' in c]
-            draw_search=True
-        if 'All-Ending Stocks' in x_cols:
-            x_cols=x_cols+[c for c in model_df.columns if 'ending stock' in c]
-            draw_search=True
-        if 'All-Yields' in x_cols:
-            x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
-            draw_search=True
-
-        x_cols = list(set(x_cols)-set(special_vars)) # here
-
-        if ((not draw_search) & (len(x_cols)>0)):
-            st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
-        
-        draw_selected=len(st.session_state['col_selection'])>0
     
+    if len(st.session_state['chatgpt_selection'])>0:
+        x_cols=x_cols+st.session_state['chatgpt_selection']
+        draw_search=True
+
     if ((draw_search) | (draw_selected)):
         with st.form("my_form"):
             col1, col2, col3 =st.columns([4,1,4])
@@ -225,10 +231,11 @@ if True:
                     add_but = st.form_submit_button("Add to selection")
                     sub_but = st.form_submit_button("Remove from list", on_click=clear_multi)
                     clean_but = st.form_submit_button("Clean Search", on_click=clean_selections)
-                    df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
+                    df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])                    
 
-                    if add_but:
-                        if len(df_x_cols_search)>0:                            
+                    if add_but:                        
+                        if len(df_x_cols_search)>0:
+                            print(dt.now(),'df_x_cols_search[Selection]',df_x_cols_search['Selection'])
                             st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
                             st.session_state['chatgpt_selection']=[]
                             st.experimental_rerun()
@@ -244,6 +251,8 @@ if True:
                 if sub_but:
                     if len(df_x_cols_selected)>0: 
                         st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
+                        if len(st.session_state['col_selection'])==0:
+                            del st.session_state['x_cols']
                         st.experimental_rerun()
 
     # st.write(x_cols)
@@ -254,8 +263,7 @@ if True:
 
     with st.sidebar:
         st.button('Calculate', on_click=func_calculate)
-        top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)
-        
+        top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)        
 
         with st.expander('Analysis Selection',expanded=True):
             sm_analysis = st.checkbox('Scatter Matrix',True)
