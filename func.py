@@ -5,6 +5,8 @@ import numpy as np
 import plotly.express as px
 import openai
 import concurrent.futures
+import sympy as sym
+import re
 
 
 def get_data():
@@ -27,6 +29,42 @@ def get_data():
 
     return df_model_all
 
+
+def dm_split(string, separators = "-+*/()'^."):
+    result = re.split('|'.join(map(re.escape, separators)), string)
+    return result
+
+def dm_replace(string, args_dict={}):
+    for k, v in args_dict.items():
+        string = string.replace(k, v)
+
+    return string
+
+def extract_symbols_from_expression(expression):
+    # the symbolic package doesn't like spaces in symbols
+    # so this function returns a dictionary {original:modified}
+    separators = "-+*/()'^.,"
+    fo=dm_split(expression,separators)
+    fo=[s.strip() for s in fo]
+    fo=[s for s in fo if not s.isnumeric()]
+
+    fo={s: s.replace(' ','_') for s in fo}
+
+    return fo
+
+def evaluate_expression(df,expression):
+    symbols_dict=extract_symbols_from_expression(expression)
+    expression=dm_replace(expression, symbols_dict)
+
+    symbols = sym.symbols(list(symbols_dict.values()))
+    
+    expression = sym.sympify(expression)
+    f = sym.lambdify([symbols], expression, 'numpy')
+
+    cols=list(symbols_dict.keys())
+    var_list=[df[c] for c in cols] # preserving the index
+    # var_list=df[cols].values.T # nicer code
+    return f(var_list)
 
 def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size=100, carry_on_conversation=False):
     """

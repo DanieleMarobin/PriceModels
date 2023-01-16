@@ -76,6 +76,10 @@ if True:
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
     today_index=model_df.index[-1]
 
+    expression='c k-c n + 2.4* w n/ cla'
+    custom=fu.evaluate_expression(model_df,expression)
+    st.write(custom)
+
 # Filters and Settings
 if True:    
     options = list(model_df.columns)
