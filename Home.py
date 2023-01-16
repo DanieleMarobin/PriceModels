@@ -39,8 +39,9 @@ if True:
         st.session_state.multiselect = []
         return
 
-    def enable_chatgpt():
-        st.session_state['chatgpt_run']=True
+    def clean_selections():
+        st.session_state['chatgpt_selection']=[]
+        st.session_state['voice_recognition_run']=''
 
     def del_sm():
          if ('scatter_matrix' in st.session_state):
@@ -55,9 +56,11 @@ if True:
     if 'chatgpt_key' not in st.session_state:
         st.session_state['chatgpt_key']=gd.read_csv('Data/ChatGPT/Info.txt').columns[0]
     if 'chatgpt_run' not in st.session_state:
-        st.session_state['chatgpt_run']=True
+        st.session_state['chatgpt_run']=False
     if 'chatgpt_selection' not in st.session_state:
         st.session_state['chatgpt_selection']=[]
+    if 'voice_recognition_run' not in st.session_state:
+        st.session_state['voice_recognition_run']=''
 
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
@@ -66,26 +69,84 @@ if True:
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
 
+
+
+# Voice Recognition Test
+print('-----------------------------------')
+if True:
+    from bokeh.models.widgets import Button
+    from bokeh.models import CustomJS
+    from streamlit_bokeh_events import streamlit_bokeh_events
+
+    stt_button = Button(label="Ask using your voice", width=100)
+    stt_button.js_on_event("button_click", 
+        CustomJS(code="""
+        var recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
     
+        recognition.onresult = function (e) 
+        {
+            var value = "";
+            for (var i = e.resultIndex; i < e.results.length; ++i) 
+            {
+                if (e.results[i].isFinal) {
+                    value += e.results[i][0].transcript;
+                }
+            }
+            if ( value != "") 
+            {
+                document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: value}));
+            }
+        }
+        recognition.start();
+        """))
+
+    voice_recognition_results = streamlit_bokeh_events(stt_button,events="GET_TEXT",key="listen",refresh_on_update=True,override_height=50,debounce_time=0)
+        
+    print(dt.now(),'voice_recognition_results',voice_recognition_results)
+
+    voice_request=''
+    if voice_recognition_results:
+        if "GET_TEXT" in voice_recognition_results:
+            voice_request=voice_recognition_results.get("GET_TEXT")
+            st.write('st.session_state[voice_recognition_run]:', st.session_state['voice_recognition_run'])
+            st.write('voice_request:', voice_request)
+
+    st.write("---")
+
 # Retrieve the Data
 if True:
     df_model_all=fu.get_data()
     model_df_instr=mp.model_df_instructions(df_model_all)
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
     today_index=model_df.index[-1]
-    # st.write(today_index)
 
 # Filters and Settings
-if True:   
+if True:    
+    print(dt.now(),'st.session_state[voice_recognition_run]:',st.session_state['voice_recognition_run'])
+    print(dt.now(),'voice_request:',voice_request)
+    print(dt.now(),'st.session_state[chatgpt_run]:',st.session_state['chatgpt_run'])
     options = list(model_df.columns)
     gpt_cols=[]
+    
+    selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)')
+    send_request = st.button('Send Request')
 
-    selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)',on_change=enable_chatgpt)
-    if ((len(selection_request)>0) & (st.session_state['chatgpt_run'])):
+    if ((send_request) & (len(selection_request)>0)):
+        st.session_state['chatgpt_run']=True
+    st.write('---')
 
+    print(dt.now(),'selection_request:',selection_request)
+    print(dt.now(),'len(selection_request:)',len(selection_request))
+    # if len(st.session_state['voice_recognition_run'])>0:
+    #     selection_request=st.session_state['voice_recognition_run']
+    #     st.session_state['chatgpt_run']=True
+
+    if st.session_state['chatgpt_run']:
         with st.expander('ChatGPT Diagnostics',expanded=False):
 
-            st.write('Request Time:',dt.now())
+            st.write('Request Time:', dt.now())
             ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100)
             prompts_n=[]
             for r in ChatGPT_requests:
@@ -98,7 +159,7 @@ if True:
             ChatGPT_selection = fu.ChatGPT_parallel_answers(ChatGPT_requests, st.session_state['chatgpt_key'])
             st.write('ChatGPT Answer:')
             st.write(ChatGPT_selection)
-            st.session_state['chatgpt_run']=False
+            
 
             st.write('Columns Extraction')
             gpt_cols=fu.extract_cols_from_ChatGPT_answers(ChatGPT_selection)
@@ -108,6 +169,10 @@ if True:
             gpt_cols = fu.maximize_columns_matching(gpt_cols, options)
             st.write(gpt_cols)
             st.session_state['chatgpt_selection']=gpt_cols
+
+            st.session_state['voice_recognition_run']=''
+            st.session_state['chatgpt_run']=False
+            voice_recognition_results['GET_TEXT']=''
 
 
     col_y_sel, col_x_sel= st.columns([1,3])
@@ -157,8 +222,9 @@ if True:
                     grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
 
                 with col2:
-                    add_but = st.form_submit_button("Select")
-                    sub_but = st.form_submit_button("Remove", on_click=clear_multi)
+                    add_but = st.form_submit_button("Add to selection")
+                    sub_but = st.form_submit_button("Remove from list", on_click=clear_multi)
+                    clean_but = st.form_submit_button("Clean Search", on_click=clean_selections)
                     df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])
 
                     if add_but:
@@ -268,7 +334,7 @@ if True:
                     if sp_add_star:
                         sp_today_size = st.number_input('Today Star Size',1,100,15,1)
 
-                    sp_add_pred = st.checkbox('Add Prediction', True)
+                    sp_add_pred = st.checkbox('Add Prediction', True, key='sp_add_pred')
                     if sp_add_pred:
                         sp_pred_size = st.number_input('Prediction Size',1,100,10,1)
 
