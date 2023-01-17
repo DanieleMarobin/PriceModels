@@ -70,14 +70,14 @@ if True:
 
         if parallel is None:
             for x_cols in x_cols_list:            
-                key = '/'.join(x_cols)
+                key = '|'.join(x_cols)
                 fo[key] = Fit_Model(df, y_col, x_cols[:], None, extract_only)
 
         elif parallel=='thread':
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
                 results={}
                 for x_cols in x_cols_list:
-                    key = '/'.join(x_cols)             
+                    key = '|'.join(x_cols)             
                     results[key] = executor.submit(Fit_Model, df, y_col, x_cols[:], None, extract_only)
             
             for key, res in results.items():
@@ -87,7 +87,7 @@ if True:
             with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
                 results={}
                 for x_cols in x_cols_list:
-                    key = '/'.join(x_cols)             
+                    key = '|'.join(x_cols)             
                     results[key] = executor.submit(Fit_Model, df, y_col, x_cols[:], None, extract_only)
             
             for key, res in results.items():
@@ -125,7 +125,7 @@ if True:
         # Visualize with the heat map
         for key, model in models_results.items():
             # Add the variable names
-            vars_split=key.split('/')        
+            vars_split=key.split('|')
             [results_dict['v'+str(i+1)].append(v) for i,v in enumerate(vars_split)]
 
             # Add the R-Squared
@@ -238,14 +238,11 @@ if True:
                 print('There are NaN in the data')
                 return None
 
-        return df_model
+        # the below because '-' would mess up the expression as it would be interpreted as 'minus'
+        df_model.columns=[c.replace('-','_') for c in df_model.columns]
+        df_model.columns=[c.replace('__','_') for c in df_model.columns]
 
-    def evaluate_expressions(df, expressions):
-        for e in expressions:
-            col=e['expression']
-            legs=e['symbols']
-            df[col]=df[legs[0]]-df[legs[1]]
-        return df
+        return df_model
 
 # Results visualization
 if True:

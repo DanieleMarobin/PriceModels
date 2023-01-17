@@ -16,11 +16,14 @@ if True:
     import Charts as uc
     import func as fu
 
-# Functions
+# Functions and Callbacks
 if True:
     def y_col_change():
         st.session_state['run_analysis']=False
         st.session_state['y_col_custom']=''
+
+    def var_builder_change():
+        st.session_state['text_x_cols_custom']= ' '.join(st.session_state['x_cols_custom_builder'])
 
     def y_col_custom_change():
         st.session_state['run_analysis']=False
@@ -53,9 +56,10 @@ if True:
         st.session_state['text_x_cols_custom']=''
         return
 
-    def clear_text_x_cols_custom():
+    def add_custom_var_click():
         st.session_state['col_selection']= list(set(st.session_state['col_selection'] + [st.session_state['text_x_cols_custom']]))
         st.session_state['text_x_cols_custom']=''
+        st.session_state['x_cols_custom_builder']=[]
 
     def clean_selections():
         st.session_state['chatgpt_selection']=[]
@@ -142,15 +146,21 @@ if True:
             draw_search=True
 
     # Custom Variables
-    with st.expander('Custom Variables', expanded=True):
-        custom_col_y_sel, custom_col_x_sel= st.columns([1,3])
-        
+    with st.expander('Custom Variables', expanded=False):
+        custom_col_y_sel, custom_col_x_sel, col_add_custom_var= st.columns([1,3,0.2])
         with custom_col_y_sel:
             y_col_custom = st.text_input('Custom Target', on_change=y_col_custom_change, key='y_col_custom')
         with custom_col_x_sel:
-            x_cols_custom = st.text_input('Custom Variables (X)',key='text_x_cols_custom',on_change=clear_text_x_cols_custom)
-            if len(x_cols_custom)>0:
-                x_cols = x_cols+[x_cols_custom]
+            x_cols_custom = st.text_input('Custom Variables (X)',key='text_x_cols_custom')
+            # if len(x_cols_custom)>0:
+            #     x_cols = x_cols+[x_cols_custom]
+            
+            x_cols_custom_builder = st.multiselect('Variables Builder',options=['0','1','2','3','4','5','6','7','8','9','+','-','*','/','^','.','(',')']+list(model_df.columns), key='x_cols_custom_builder', on_change=var_builder_change)            
+        with col_add_custom_var:
+            st.write('#')
+            st.write('#')
+            st.button('Add', on_click=add_custom_var_click)
+
 
     # Start populating the st.session_state['col_selection'] to show in the selected table
     x_cols = list(set(x_cols)-set(special_vars))
