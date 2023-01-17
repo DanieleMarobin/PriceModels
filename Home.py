@@ -94,7 +94,7 @@ if True:
     # Trade Entry and Exit
     # options =list(df_model_all.index)   
     report_days=df_model_all.index
-    first_training_date, last_training_date = st.select_slider('Time Frame', options=report_days, value=(report_days[0], report_days[-1]), format_func=format_report_date, on_change=disable_analysis)
+    first_training_date, last_training_date = st.select_slider('Time Frame', options=report_days, value=(report_days[4], report_days[-1]), format_func=format_report_date, on_change=disable_analysis)
 
 # From 'df_model_all' to 'model_df'
 if True:
