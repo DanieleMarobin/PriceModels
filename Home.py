@@ -51,7 +51,7 @@ if True:
         return
 
     def clear_text_x_cols_custom():
-        st.session_state['col_selection']= list(set(st.session_state['col_selection']+ [st.session_state['text_x_cols_custom']]))
+        st.session_state['col_selection']= list(set(st.session_state['col_selection'] + [st.session_state['text_x_cols_custom']]))
         st.session_state['text_x_cols_custom']=''
 
     def clean_selections():
@@ -60,6 +60,9 @@ if True:
     def del_sm():
          if ('scatter_matrix' in st.session_state):
             del st.session_state['scatter_matrix']
+
+    def format_report_date(item):
+        return item.strftime("%b %Y")
     
 # Preliminaries
 if True:
@@ -81,13 +84,27 @@ if True:
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
 
-# Retrieve the Data
+# Retrieve the ALL Data
 if True:
     df_model_all=fu.get_data()
-    model_df_instr=mp.model_df_instructions(df_model_all)
+
+
+# Time Frame (before everything, because it changes the amount of available variables)
+if True:
+    # Trade Entry and Exit
+    # options =list(df_model_all.index)   
+    report_days=df_model_all.index
+    first_training_date, last_training_date = st.select_slider('Time Frame', options=report_days, value=(report_days[0], report_days[-1]), format_func=format_report_date, on_change=disable_analysis)
+
+# From 'df_model_all' to 'model_df'
+if True:
+    df_model_all=fu.get_data()
+    model_df_instr=mp.model_df_instructions(df_model_all,first_training_date,last_training_date)
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
     options = list(model_df.columns)
     today_index=model_df.index[-1]
+
+
 
 # Filters and Settings
 if True:
@@ -100,7 +117,7 @@ if True:
         special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
         options=special_vars[:]
         options=options+list(model_df.columns)
-        x_cols = st.multiselect('Selected Variables (X)', options, on_change=disable_analysis, key='multi_x_cols')
+        x_cols = st.multiselect('Variables (X) - '+ str(len(options)) + ' Available', options, on_change=disable_analysis, key='multi_x_cols')
         
         draw_search=False
         draw_selected=False        
@@ -281,7 +298,6 @@ if True:
                             st.experimental_rerun()
 
         x_cols = list(set(st.session_state['col_selection']))
-        
 
 # Sidebar
 if True:
@@ -393,7 +409,6 @@ if True:
 
     if ('x_cols' in st.session_state):
         x_cols=st.session_state['x_cols']
-        
     else:                
         with st.spinner('Calculating the top '+str(top_n_vars) + ' variables...'):
             # 1)

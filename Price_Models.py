@@ -150,15 +150,15 @@ if True:
 
 # Data
 if True:
-    def model_df_instructions(df_model_all):
+    def model_df_instructions(df_model_all,first_training_date,last_training_date):
         """
         These are the instructions to reduce the 'df_model_all' to the final 'model_df' that will be used for the search
         """
         fo={}
         # Timing
-        first_training_date=dt(1995,5,1) # to start with a fresh new crop year
+        # first_training_date=dt(1995,5,1) # to start with a fresh new crop year
         # last_training_date=dt(2022,12,1)
-        last_training_date=df_model_all.index[-1]
+        # last_training_date=df_model_all.index[-1]
 
         # Shifts
         cols_to_shift=[]
