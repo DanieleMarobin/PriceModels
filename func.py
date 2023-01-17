@@ -84,7 +84,6 @@ def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size
     requests=[]
     if (carry_on_conversation):
         requests=requests+[user_request]
-
     else:
         subsets_col_options=[]
         for i in range(0, len(col_options), subset_size):

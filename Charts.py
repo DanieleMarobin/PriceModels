@@ -70,7 +70,7 @@ def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=Fal
 
     return fig
 
-def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=True, vertical_spacing=0.03, horizontal_spacing=0.01, marker_size=2, today_index=None, today_size=5, prediction_index=None, prediction_size=5):
+def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=True, vertical_spacing=0.03, horizontal_spacing=0.01, marker_size=2, today_index=None, today_size=5, prediction_index=None, prediction_size=5, x_tickangle=90, y_tickangle=0):
     cols=list(df.columns)
 
     if add_title:
@@ -111,12 +111,12 @@ def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=
             fig.update_xaxes(row=rr, col=cc, showgrid=False,zeroline=False)
             if rr==len(cols):
                 tick_pos=(x.max()+x.min())/2.0
-                fig.update_xaxes(row=rr, col=cc, tickangle=90,automargin=True,tickvals=[tick_pos],ticktext=[xc], showgrid=False,zeroline=False)
+                fig.update_xaxes(row=rr, col=cc, tickangle=x_tickangle,automargin=True,tickvals=[tick_pos],ticktext=[xc], showgrid=False,zeroline=False)
 
             fig.update_yaxes(row=rr, col=cc, showgrid=False,zeroline=False)
             if cc==1:
                 tick_pos=(y.max()+y.min())/2.0
-                fig.update_yaxes(row=rr, col=cc, tickangle=0,automargin=True,tickvals=[tick_pos],ticktext=[yc],showgrid=False,zeroline=False)
+                fig.update_yaxes(row=rr, col=cc, tickangle=y_tickangle,automargin=True,tickvals=[tick_pos],ticktext=[yc],showgrid=False,zeroline=False)
 
             if ((add_trendline) | (add_title)):
                 model = sm.OLS(y.values, sm.add_constant(x.values), missing="drop").fit()
@@ -137,6 +137,86 @@ def scatter_matrix_chart(df, marker_color='blue', add_trendline=True, add_title=
     
     fig.update_layout(showlegend=False)
     return fig
+
+def sorted_scatter_chart(df, y_col, N_col_subplots=5, marker_color='blue', add_trendline=True, add_title=True, vertical_spacing=0.03, horizontal_spacing=0.01, marker_size=2, today_index=None, today_size=5, prediction_index=None, prediction_size=5, x_tickangle=90, y_tickangle=0):
+    """
+    N_col_subplots = 5
+        - it means: 5 chart in each row
+    """
+    
+    cols=list(df.columns)
+
+    if add_title:
+        titles=['title ' + str(i) for i in range(len(cols))]
+    else:
+        titles=[]
+
+    cols=list(df.columns)
+    cols_subsets=[]
+    for i in range(0, len(cols), N_col_subplots):
+        cols_subsets=cols_subsets+[cols[i:i+N_col_subplots]]
+
+    fig = make_subplots(rows=len(cols_subsets), cols=len(cols_subsets[0]), shared_xaxes=False, shared_yaxes=True, subplot_titles=titles, vertical_spacing=vertical_spacing, horizontal_spacing=horizontal_spacing)
+
+    mode='markers'
+    
+    anno_count=0
+    for ri, cols in enumerate(cols_subsets):
+        for ci, xc in enumerate(cols):
+            rr=ri+1
+            cc=ci+1
+
+            x=df[xc]
+            y=df[y_col]
+
+            date_format = "%d %B %Y"
+            y_str = 'Y: '+ y_col +' %{y:.2f}'
+            x_str = 'X: '+ xc +' %{x:.2f}'
+            text=[]
+            if xc=='date':
+                text = [d.strftime(date_format) for d in [dt.fromordinal(i) for i in x]]
+                x_str='X: %{text}'
+
+            if y_col=='date':
+                text = [d.strftime(date_format) for d in [dt.fromordinal(i) for i in y]]
+                y_str='Y: %{text}'
+
+            hovertemplate="<br>".join([y_str, x_str, "<extra></extra>"])
+
+            fig.add_trace(go.Scatter(x=x, y=y, mode=mode,marker=dict(size=marker_size,color=marker_color),hovertemplate=hovertemplate,text=text), row=rr, col=cc)
+            if today_index is not None:
+                add_today(fig,df,xc,y_col,today_index,today_size, row=rr, col=cc)
+            
+            # X-axis
+            tick_pos=(x.max()+x.min())/2.0
+            fig.update_xaxes(row=rr, col=cc, tickangle=x_tickangle,automargin=True,tickvals=[tick_pos],ticktext=[xc], showgrid=False,zeroline=False)
+
+            # Y-axis
+            tick_pos=(y.max()+y.min())/2.0
+            fig.update_yaxes(row=rr, col=cc, tickangle=y_tickangle,automargin=True,tickvals=[tick_pos],ticktext=[y_col],showgrid=False,zeroline=False)
+
+            if ((add_trendline) | (add_title)):
+                model = sm.OLS(y.values, sm.add_constant(x.values), missing="drop").fit()
+                r_sq_str="Rsq "+str(round(100*model.rsquared,1))
+                hovertemplate="<br>".join([r_sq_str, "<extra></extra>"])
+
+                if add_trendline:
+                    fig.add_trace(go.Scatter(x=x, y=model.predict(), mode='lines',hovertemplate=hovertemplate, line=dict(color='black', width=0.5)), row=rr, col=cc)
+                    pred_str=''
+                    print('prediction_index',prediction_index)
+                    
+                    if prediction_index is not None:
+                        pred_str= 'Pred '+str(round(add_today(fig,df,xc,y_col,prediction_index, size=prediction_size, color='black', symbol='x', name='Prediction', row=rr, col=cc,model=model),1))
+                    
+                if add_title:
+                    fig.layout.annotations[anno_count].update(text=r_sq_str+ ' '+pred_str)
+                    anno_count+=1
+    
+    fig.update_layout(showlegend=False)
+    return fig
+
+
+
 
 def get_plotly_colorscales():
     """
@@ -219,7 +299,6 @@ def aggrid_var_search(df,rows_per_page=None, pre_selected_rows=[]):
                         reload_data=False,enable_enterprise_modules=True, allow_unsafe_jscode=True)
    
     return grid_response
-
 
 def aggrid_var_selected(df,rows_per_page=None, pre_selected_rows=[]):
     # Decide which columns to show

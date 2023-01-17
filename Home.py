@@ -42,6 +42,9 @@ if True:
         if ('scatter_matrix' in st.session_state):
             del st.session_state['scatter_matrix']
 
+        if ('scatter_y_matrix' in st.session_state):
+            del st.session_state['scatter_y_matrix']
+
     def disable_analysis():
         st.session_state['run_analysis']=False
     
@@ -58,8 +61,11 @@ if True:
         st.session_state['chatgpt_selection']=[]
 
     def del_sm():
-         if ('scatter_matrix' in st.session_state):
+        if ('scatter_matrix' in st.session_state):
             del st.session_state['scatter_matrix']
+
+        if ('scatter_y_matrix' in st.session_state):
+            del st.session_state['scatter_y_matrix']            
 
     def format_report_date(item):
         return item.strftime("%b %Y")
@@ -259,7 +265,7 @@ if True:
     # Search and Select Variables
     if '' in st.session_state['col_selection']:
         st.session_state['col_selection'].remove('')
-        
+
     draw_selected=len(st.session_state['col_selection'])>0    
     with st.expander('Selected Variables',expanded=True):
         if ((draw_search) | (draw_selected)):
@@ -302,27 +308,34 @@ if True:
 
         x_cols = list(set(st.session_state['col_selection']))
 
-# Sidebar
+# Sidebar Settings
 if True:
     with st.sidebar:
         st.button('Calculate', on_click=func_calculate)
         top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)        
 
         with st.expander('Analysis Selection',expanded=True):
-            sm_analysis = st.checkbox('Scatter Matrix',True)
-            hm_analysis = st.checkbox('Heat Map',True)
+            sy_analysis = st.checkbox('Scatter Matrix (only Y-axis)',True)
+            sm_analysis = st.checkbox('Scatter Matrix',False)
+            hm_analysis = st.checkbox('Heat Map',False)
             sp_analysis = st.checkbox('Detailed Scatter Plots',False)
 
-        if sm_analysis:
+        if ((sy_analysis) | (sm_analysis)):
             with st.expander('Scatter Matrix Settings'):
                 tab1, tab2, tab3 = st.tabs(["Sizing", "Colors", "Trendline"])
 
                 with tab1:
+                    sy_cols = st.number_input('Number of Charts in each Row',1,50,10,1, key='syc',on_change=del_sm)
+
                     sm_height = st.number_input('Height',100,100000,1000,100, key='smh')
                     sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.03,0.01,on_change=del_sm)
                     sm_hor = st.number_input('Horizontal Spacing',0.0,1.0,0.01,0.01,on_change=del_sm)
                     sm_marker_size = st.number_input('Marker Size',1,100,2,1,key='sms')
                     sm_font_size = st.number_input('Font Size',1,20,12,1,key='smf', on_change=del_sm)
+
+                    sm_y_tickangle= st.number_input('Y Title angle',-90,90,0,1,key='smy', on_change=del_sm)
+                    sm_x_tickangle= st.number_input('X Title angle',-90,90,0,1,key='smx', on_change=del_sm)
+                    
 
                 with tab2:
                     sm_color = st.color_picker('Single Color', '#2929E8',on_change=del_sm)
@@ -394,12 +407,7 @@ if True:
 
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
-# - if they are in memory, it means they are already sorted
-# - if not:
-#       1) need to get only the user selected columns
-#       2) sort them
-#       3) store them in memory
-
+    # get the y_col (or y_col_custom)
     if len(y_col)>0:
         y_col=y_col
     elif len(y_col_custom)>0:
@@ -407,8 +415,15 @@ if True:
     else:
         st.stop()
                 
+    # Calculate all the expressions
     x_cols=x_cols+[y_col]
     model_df=fu.add_missing_cols(model_df, x_cols)
+
+    # - if the "top_n_x_cols" (x_cols) are in memory, it means they are already sorted
+    # - if not:
+    #       1) need to get only the user selected columns
+    #       2) sort them
+    #       3) store them in memory
 
     if ('x_cols' in st.session_state):
         x_cols=st.session_state['x_cols']
@@ -433,7 +448,7 @@ if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
         with st.spinner('Calculating the Scatter Matrix...'):
             df=model_df[[y_col]+x_cols]                              
             st.session_state['scatter_matrix'] = uc.scatter_matrix_chart(df, marker_color=sm_color, add_trendline=sm_trendline, add_title=sm_title, vertical_spacing=sm_vert, horizontal_spacing=sm_hor, today_index=sm_today_index, today_size=sm_today_size, prediction_index=sm_pred_index,prediction_size=sm_pred_size)
-            fig=st.session_state['scatter_matrix']
+            fig=st.session_state['scatter_matrix']              
             
     fig.update_layout(height=sm_height)
 
@@ -441,8 +456,24 @@ if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
     fig.for_each_xaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
     fig.for_each_yaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
 
-    # fig.update_xaxes(row=rr, col=cc, tickangle=90,automargin=True,tickvals=[tick_pos],ticktext=[xc], showgrid=False,zeroline=False)
     st.plotly_chart(fig,use_container_width=True)
+
+if ((sy_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
+    if ('scatter_y_matrix' in st.session_state):
+        fig=st.session_state['scatter_y_matrix']
+    else:
+        with st.spinner('Calculating the Y only Scatter Matrix...'):
+            df=model_df[[y_col]+x_cols]
+            st.session_state['scatter_y_matrix'] = uc.sorted_scatter_chart(df, y_col, N_col_subplots=sy_cols, x_tickangle=sm_x_tickangle, y_tickangle=sm_y_tickangle, marker_color=sm_color, add_trendline=sm_trendline, add_title=sm_title, vertical_spacing=sm_vert, horizontal_spacing=sm_hor, today_index=sm_today_index, today_size=sm_today_size, prediction_index=sm_pred_index,prediction_size=sm_pred_size)
+            fig=st.session_state['scatter_y_matrix']                
+            
+    fig.update_layout(height=sm_height)
+
+    fig.for_each_annotation(lambda anno: anno.update(font=dict(size=sm_font_size)))
+    fig.for_each_xaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
+    fig.for_each_yaxis(lambda axis: axis.tickfont.update(size=sm_font_size))
+
+    st.plotly_chart(fig,use_container_width=True)    
 
 # Heat-Map
 if ((hm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
