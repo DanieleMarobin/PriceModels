@@ -23,7 +23,11 @@ if True:
         st.session_state['y_col_custom']=''
 
     def var_builder_change():
-        st.session_state['text_x_cols_custom']= ' '.join(st.session_state['x_cols_custom_builder'])
+        # st.session_state['text_x_cols_custom']= ' '.join(st.session_state['x_cols_custom_builder']) # good
+
+        # test
+        st.session_state['text_x_cols_custom']= st.session_state['text_x_cols_custom']+' '+st.session_state['x_cols_custom_builder'][0]
+        st.session_state['x_cols_custom_builder']=[]
 
     def y_col_custom_change():
         st.session_state['run_analysis']=False
