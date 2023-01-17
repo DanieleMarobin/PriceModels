@@ -151,7 +151,7 @@ if True:
     if ((not draw_search) & (len(x_cols)>0)):
         st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
     
-    draw_selected=len(st.session_state['col_selection'])>0
+    # draw_selected=len(st.session_state['col_selection'])>0
 
     with st.expander('Artificial Intelligence Selection', expanded=False):
         # Voice Recognition
@@ -257,6 +257,10 @@ if True:
         draw_search=True
 
     # Search and Select Variables
+    if '' in st.session_state['col_selection']:
+        st.session_state['col_selection'].remove('')
+        
+    draw_selected=len(st.session_state['col_selection'])>0    
     with st.expander('Selected Variables',expanded=True):
         if ((draw_search) | (draw_selected)):
             with st.form("my_form"):
@@ -274,7 +278,6 @@ if True:
 
                         if add_but:                        
                             if len(df_x_cols_search)>0:
-                                print(dt.now(),'df_x_cols_search[Selection]',df_x_cols_search['Selection'])
                                 st.session_state['col_selection']=list(set(st.session_state['col_selection']+ list(df_x_cols_search['Selection'])))
                                 st.session_state['chatgpt_selection']=[]
                                 st.experimental_rerun()
