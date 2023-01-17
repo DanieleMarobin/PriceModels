@@ -325,7 +325,7 @@ if True:
                 tab1, tab2, tab3 = st.tabs(["Sizing", "Colors", "Trendline"])
 
                 with tab1:
-                    sy_cols = st.number_input('Number of Charts in each Row',1,50,10,1, key='syc',on_change=del_sm)
+                    sy_cols = st.number_input('Number of Charts in each Row',1,50,5,1, key='syc',on_change=del_sm)
 
                     sm_height = st.number_input('Height',100,100000,1000,100, key='smh')
                     sm_vert = st.number_input('Vertical Spacing',0.0,1.0,0.03,0.01,on_change=del_sm)
