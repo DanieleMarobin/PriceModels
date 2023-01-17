@@ -18,6 +18,14 @@ if True:
 
 # Functions
 if True:
+    def y_col_change():
+        st.session_state['run_analysis']=False
+        st.session_state['y_col_custom']=''
+
+    def y_col_custom_change():
+        st.session_state['run_analysis']=False
+        st.session_state['y_col']=''
+
     def func_reset():
         if ('df_model_all' in st.session_state):
             del st.session_state['df_model_all']
@@ -37,9 +45,14 @@ if True:
     def disable_analysis():
         st.session_state['run_analysis']=False
     
-    def clear_multi():
-        st.session_state.multiselect = []
+    def clear_x_selection():
+        st.session_state['multi_x_cols'] = []
+        st.session_state['text_x_cols_custom']=''
         return
+
+    def clear_text_x_cols_custom():
+        st.session_state['col_selection']= list(set(st.session_state['col_selection']+ [st.session_state['text_x_cols_custom']]))
+        st.session_state['text_x_cols_custom']=''
 
     def clean_selections():
         st.session_state['chatgpt_selection']=[]
@@ -68,38 +81,30 @@ if True:
     st.sidebar.markdown("### Price Models")
     color_scales = uc.get_plotly_colorscales()
 
-
 # Retrieve the Data
 if True:
     df_model_all=fu.get_data()
     model_df_instr=mp.model_df_instructions(df_model_all)
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
+    options = list(model_df.columns)
     today_index=model_df.index[-1]
 
-    expression='c k-c n + 2.4* w n/ cla'
-    custom=fu.evaluate_expression(model_df,expression)
-    st.write(custom)
-
 # Filters and Settings
-if True:    
-    options = list(model_df.columns)
+if True:
     col_y_sel, col_x_sel= st.columns([1,3])
 
-    with col_y_sel:       
-        y_col = st.selectbox('Target',options, options.index('c a'), on_change=disable_analysis)
-
+    # Standard Variables
+    with col_y_sel:
+        y_col = st.selectbox('Target (y)',['']+options, on_change=y_col_change, key='y_col')
     with col_x_sel:
         special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
         options=special_vars[:]
         options=options+list(model_df.columns)
-        x_cols = st.multiselect('Selected Variables', options, on_change=disable_analysis, key='multiselect')
+        x_cols = st.multiselect('Selected Variables (X)', options, on_change=disable_analysis, key='multi_x_cols')
         
         draw_search=False
         draw_selected=False        
 
-        # if len(st.session_state['chatgpt_selection'])>0:
-        #     x_cols=x_cols+st.session_state['chatgpt_selection']
-        #     draw_search=True
         if 'All' in x_cols:
             x_cols=x_cols+list(model_df.columns)
             draw_search=True
@@ -113,14 +118,24 @@ if True:
             x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
             draw_search=True
 
-        x_cols = list(set(x_cols)-set(special_vars)) # here
-
-        if ((not draw_search) & (len(x_cols)>0)):
-            st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
+    # Custom Variables
+    with st.expander('Custom Variables', expanded=True):
+        custom_col_y_sel, custom_col_x_sel= st.columns([1,3])
         
-        draw_selected=len(st.session_state['col_selection'])>0
-            
+        with custom_col_y_sel:
+            y_col_custom = st.text_input('Custom Target', on_change=y_col_custom_change, key='y_col_custom')
+        with custom_col_x_sel:
+            x_cols_custom = st.text_input('Custom Variables (X)',key='text_x_cols_custom',on_change=clear_text_x_cols_custom)
+            if len(x_cols_custom)>0:
+                x_cols = x_cols+[x_cols_custom]
+
+    # Start populating the st.session_state['col_selection'] to show in the selected table
+    x_cols = list(set(x_cols)-set(special_vars))
+    if ((not draw_search) & (len(x_cols)>0)):
+        st.session_state['col_selection']= list(set(st.session_state['col_selection']+ list(set(x_cols))))
     
+    draw_selected=len(st.session_state['col_selection'])>0
+
     with st.expander('Artificial Intelligence Selection', expanded=False):
         # Voice Recognition
         if True:
@@ -175,8 +190,7 @@ if True:
 
             print(dt.now(),'voice_request:',voice_request)
             print(dt.now(),'st.session_state[chatgpt_run]:',st.session_state['chatgpt_run'])
-
-            # carry_on_conversation = st.checkbox('Carry on with the same conversation')
+            carry_on_conversation = st.checkbox('Simple Chat (if you feel lonely and want to talk to someone)',False)
 
         # ChatGPT
         if True:        
@@ -188,13 +202,12 @@ if True:
             if ((send_request) & (len(selection_request)>0)):
                 st.session_state['chatgpt_run']=True
 
-
     if st.session_state['chatgpt_run']:
         options = list(model_df.columns)
         with st.expander('ChatGPT Diagnostics',expanded=False):
 
             st.write('Request Time:', dt.now())
-            ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100, False)
+            ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100, carry_on_conversation)
             prompts_n=[]
             for r in ChatGPT_requests:
                 prompts_n.append(len(r))
@@ -221,24 +234,24 @@ if True:
 
             st.session_state['chatgpt_run']=False    
 
+    # If 'chat_gpt' picks up something, put it into the search to decide if we want to add it or not to the final selection
     if len(st.session_state['chatgpt_selection'])>0:
         x_cols=x_cols+st.session_state['chatgpt_selection']
         draw_search=True
 
-
+    # Search and Select Variables
     with st.expander('Selected Variables',expanded=True):
         if ((draw_search) | (draw_selected)):
             with st.form("my_form"):
-                col1, col2, col3 =st.columns([4,1,4])
+                col_selected, col_buttons, col_search =st.columns([4,1,4])
 
                 if draw_search:
-                    with col3:
+                    with col_search:
                         df_search = pd.DataFrame({'Selection':x_cols})
                         grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
-
-                    with col2:
+                    with col_buttons:
                         add_but = st.form_submit_button("Add to selection")
-                        sub_but = st.form_submit_button("Remove from list", on_click=clear_multi)
+                        sub_but = st.form_submit_button("Remove from list", on_click=clear_x_selection)
                         clean_but = st.form_submit_button("Clean Search", on_click=clean_selections)
                         df_x_cols_search=pd.DataFrame(grid_response_search['selected_rows'])                    
 
@@ -249,10 +262,10 @@ if True:
                                 st.session_state['chatgpt_selection']=[]
                                 st.experimental_rerun()
                 else:
-                    with col2:
-                        sub_but = st.form_submit_button("Remove", on_click=clear_multi)
+                    with col_buttons:
+                        sub_but = st.form_submit_button("Remove", on_click=clear_x_selection)
 
-                with col1:
+                with col_selected:
                     df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
                     grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
                     df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
@@ -260,14 +273,18 @@ if True:
                     if sub_but:
                         if len(df_x_cols_selected)>0: 
                             st.session_state['col_selection']=list(set(st.session_state['col_selection'])-set(df_x_cols_selected['Selection']))
-                            if len(st.session_state['col_selection'])==0:
-                                del st.session_state['x_cols']
+
+                        if ('x_cols' in st.session_state):
+                            del st.session_state['x_cols']
+                            
+                            disable_analysis()
                             st.experimental_rerun()
 
-        # st.write(x_cols)
         x_cols = list(set(st.session_state['col_selection']))
-        x_cols=x_cols+[y_col]    
+        
 
+# Sidebar
+if True:
     with st.sidebar:
         st.button('Calculate', on_click=func_calculate)
         top_n_vars = st.number_input('Top N Variables',1,10000,5,1, on_change=disable_analysis)        
@@ -315,7 +332,6 @@ if True:
                             sm_pred_index=today_index
                             sm_pred_size = st.number_input('Prediction Size',1,100,5,1,key='smps', on_change=del_sm)
 
-
         if hm_analysis:
             with st.expander('Heat Map Settings'):
                 hm_height = st.number_input('Height',100,100000,750,100, key='hmh')
@@ -355,15 +371,29 @@ if True:
 
         st.button('Get Latest File', on_click=func_reset)        
 
+
+
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
 # - if they are in memory, it means they are already sorted
 # - if not:
 #       1) need to get only the user selected columns
 #       2) sort them
-#       3) store them in memory    
+#       3) store them in memory
+
+    if len(y_col)>0:
+        y_col=y_col
+    elif len(y_col_custom)>0:
+        y_col=y_col_custom
+    else:
+        st.stop()
+                
+    x_cols=x_cols+[y_col]
+    model_df=fu.add_missing_cols(model_df, x_cols)
+
     if ('x_cols' in st.session_state):
         x_cols=st.session_state['x_cols']
+        
     else:                
         with st.spinner('Calculating the top '+str(top_n_vars) + ' variables...'):
             # 1)
@@ -375,7 +405,7 @@ if True:
             x_cols=list(x_cols[0:top_n_vars])
 
             # 3)            
-            st.session_state['x_cols']=x_cols    
+            st.session_state['x_cols']=x_cols
 
 # Scatter Matrix
 if ((sm_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
@@ -444,9 +474,9 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
             options.sort()
 
             if all_options:
-                sel_months = st.multiselect( 'Months', options, options)
+                sel_months = st.multiselect('Months', options, options)
             else:
-                sel_months = st.multiselect( 'Months', options)
+                sel_months = st.multiselect('Months', options)
         with col_y_sel:        
             st.markdown('#### Crop Year Split')
             st.markdown('---')

@@ -29,7 +29,6 @@ def get_data():
 
     return df_model_all
 
-
 def dm_split(string, separators = "-+*/()'^."):
     result = re.split('|'.join(map(re.escape, separators)), string)
     return result
@@ -66,6 +65,14 @@ def evaluate_expression(df,expression):
     # var_list=df[cols].values.T # nicer code
     return f(var_list)
 
+def add_missing_cols(df, cols):
+    # the assumption is that the missing columns names are the expressions to be evaluated
+    for c in cols:
+        if c not in df.columns:
+            df[c]=evaluate_expression(df,c)
+
+    return df
+
 def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size=100, carry_on_conversation=False):
     """
     as ChatGPT has around 4000 input tokens limitation (https://beta.openai.com/docs/models/gpt-3)
@@ -95,7 +102,6 @@ def prepare_ChatGPT_selection_requests(user_request, col_options=[], subset_size
             requests=requests+[fo]
 
     return requests
-
 
 def ChatGPT_parallel_answers(requests=[],key=None):
 
