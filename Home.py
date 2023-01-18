@@ -18,6 +18,11 @@ if True:
 
 # Functions and Callbacks
 if True:
+    def send_GPT_request_click(simple_chat):        
+        st.session_state['ChatGPT_request']= st.session_state['ChatGPT_request_widget'] # save the request
+        if simple_chat:
+            st.session_state['ChatGPT_request_widget']= ''# clean the text box
+
     def y_col_change():
         st.session_state['run_analysis']=False
         st.session_state['y_col_custom']=''
@@ -90,6 +95,8 @@ if True:
         st.session_state['chatgpt_run']=False
     if 'chatgpt_selection' not in st.session_state:
         st.session_state['chatgpt_selection']=[]
+    if 'ChatGPT_request' not in st.session_state:
+        st.session_state['ChatGPT_request']=[]
 
     st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
     st.markdown("### Price Models")
@@ -101,7 +108,6 @@ if True:
 # Retrieve the ALL Data
 if True:
     df_model_all=fu.get_data()
-
 
 # Time Frame (before everything, because it changes the amount of available variables)
 if True:
@@ -165,7 +171,6 @@ if True:
             st.write('#')
             st.button('Add', on_click=add_custom_var_click)
 
-
     # Start populating the st.session_state['col_selection'] to show in the selected table
     x_cols = list(set(x_cols)-set(special_vars))
     if ((not draw_search) & (len(x_cols)>0)):
@@ -227,49 +232,50 @@ if True:
 
             print(dt.now(),'voice_request:',voice_request)
             print(dt.now(),'st.session_state[chatgpt_run]:',st.session_state['chatgpt_run'])
-            carry_on_conversation = st.checkbox('Simple Chat (if you feel lonely and want to talk to someone)',False)
+            simple_conversation = st.checkbox('Simple Chat (if you feel lonely and want to talk to someone)',False)
 
         # ChatGPT
         if True:        
             gpt_cols=[]
             
-            selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)', voice_request)
-            send_request = st.button('Send Request')
+            selection_request=st.text_area('From all available variables please... (select only the funds, exclude the prices, ...)', voice_request, key='ChatGPT_request_widget')
+            send_request = st.button('Send Request', on_click=send_GPT_request_click, args=(simple_conversation,))
 
-            if ((send_request) & (len(selection_request)>0)):
+            if ((send_request) & (len(st.session_state['ChatGPT_request'])>0)):
                 st.session_state['chatgpt_run']=True
 
-    if st.session_state['chatgpt_run']:
-        options = list(model_df.columns)
-        with st.expander('ChatGPT Diagnostics',expanded=False):
+        if st.session_state['chatgpt_run']:
+            with st.spinner('Waiting for ChatGPT answers...'):
+                options = list(model_df.columns)
+                ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(st.session_state['ChatGPT_request'], options,100, simple_conversation)
+                ChatGPT_selection = fu.ChatGPT_parallel_answers(ChatGPT_requests, st.session_state['chatgpt_key'])
 
-            st.write('Request Time:', dt.now())
-            ChatGPT_requests=fu.prepare_ChatGPT_selection_requests(selection_request, options,100, carry_on_conversation)
-            prompts_n=[]
-            for r in ChatGPT_requests:
-                prompts_n.append(len(r))
+                gpt_cols_extraction=fu.extract_cols_from_ChatGPT_answers(ChatGPT_selection)
+                gpt_cols = fu.maximize_columns_matching(gpt_cols_extraction, options)
 
-            st.write('Prompts Lenghts:')
-            st.write(prompts_n)
+                st.session_state['chatgpt_selection']=gpt_cols
+                st.session_state['chatgpt_run']=False                
 
-            st.write('ChatGPT Question:')
-            st.write(ChatGPT_requests)
+                st.write('ChatGPT Answer:')
+                for a in ChatGPT_selection:
+                    st.text(a)
 
-            ChatGPT_selection = fu.ChatGPT_parallel_answers(ChatGPT_requests, st.session_state['chatgpt_key'])
-            st.write('ChatGPT Answer:')
-            st.write(ChatGPT_selection)
-            
+                # st.write('Request Time:', dt.now())
+                # prompts_n=[]
+                # for r in ChatGPT_requests:
+                #     prompts_n.append(len(r))
 
-            st.write('Columns Extraction')
-            gpt_cols=fu.extract_cols_from_ChatGPT_answers(ChatGPT_selection)
-            st.write(gpt_cols)
+                # st.write('Prompts Lenghts:')
+                # st.write(prompts_n)
 
-            st.write('Correctly identified columns')
-            gpt_cols = fu.maximize_columns_matching(gpt_cols, options)
-            st.write(gpt_cols)
-            st.session_state['chatgpt_selection']=gpt_cols
+                # st.write('ChatGPT Question:')
+                # st.write(ChatGPT_requests)
 
-            st.session_state['chatgpt_run']=False    
+                # st.write('Columns Extraction')            
+                # st.write(gpt_cols_extraction)
+
+                # st.write('Correctly identified columns')            
+                # st.write(gpt_cols)
 
     # If 'chat_gpt' picks up something, put it into the search to decide if we want to add it or not to the final selection
     if len(st.session_state['chatgpt_selection'])>0:
@@ -281,7 +287,7 @@ if True:
         st.session_state['col_selection'].remove('')
 
     draw_selected=len(st.session_state['col_selection'])>0    
-    with st.expander('Selected Variables',expanded=True):
+    with st.expander('Selected Variables', expanded=True):
         if ((draw_search) | (draw_selected)):
             with st.form("my_form"):
                 col_selected, col_buttons, col_search =st.columns([4,1,4])
