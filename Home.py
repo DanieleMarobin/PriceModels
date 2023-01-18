@@ -31,7 +31,9 @@ if True:
         # st.session_state['text_x_cols_custom']= ' '.join(st.session_state['x_cols_custom_builder']) # good
 
         # test
-        st.session_state['text_x_cols_custom']= st.session_state['text_x_cols_custom']+' '+st.session_state['x_cols_custom_builder'][0]
+        if len(st.session_state['x_cols_custom_builder'])>0:
+            st.session_state['text_x_cols_custom']= st.session_state['text_x_cols_custom']+' '+st.session_state['x_cols_custom_builder'][0]
+
         st.session_state['x_cols_custom_builder']=[]
 
     def y_col_custom_change():
@@ -110,17 +112,36 @@ if True:
     df_model_all=fu.get_data()
 
 # Time Frame (before everything, because it changes the amount of available variables)
-if True:
+with st.expander('Time Frame', expanded=False):
     # Trade Entry and Exit
     # options =list(df_model_all.index)   
     report_days=df_model_all.index
-    first_training_date, last_training_date = st.select_slider('Time Frame', options=report_days, value=(report_days[4], report_days[-1]), format_func=format_report_date, on_change=disable_analysis)
+    first_training_date, last_training_date = st.select_slider('Reports', options=report_days, value=(report_days[4], report_days[-1]), format_func=format_report_date, on_change=disable_analysis)
+
+    col1,col2=st.columns([1,8])
+    with col1:
+        st.write('#')
+        all_options = st.checkbox("All Months", True, key='all_report_months', on_change=disable_analysis)
+
+    with col2:
+        options=list(set(df_model_all.index.month))
+        options.sort()
+
+        if all_options:
+            sel_months = st.multiselect('Report Months', options, options, on_change=disable_analysis)
+        else:
+            sel_months = st.multiselect('Report Months', options, on_change=disable_analysis)
 
 # From 'df_model_all' to 'model_df'
 if True:
-    df_model_all=fu.get_data()
     model_df_instr=mp.model_df_instructions(df_model_all,first_training_date,last_training_date)
     model_df = mp.from_df_model_all_to_model_df(df_model_all, model_df_instr)
+
+    # WIP: bring it into the above functions (running out of time for the presentation)
+    if len(sel_months)==0: st.stop()
+    mask = np.isin(model_df.index.month, sel_months)
+    model_df=model_df[mask]
+
     options = list(model_df.columns)
     today_index=model_df.index[-1]
 
@@ -134,7 +155,7 @@ if True:
     with col_y_sel:
         y_col = st.selectbox('Target (y)',['']+options, on_change=y_col_change, key='y_col')
     with col_x_sel:
-        special_vars=['All','All-Stock to use','All-Ending Stocks','All-Yields']
+        special_vars=['All','All-Corn','All-Wheat','All-Stock to use','All-Ending Stocks','All-Yields']
         options=special_vars[:]
         options=options+list(model_df.columns)
         x_cols = st.multiselect('Variables (X) - '+ str(len(options)) + ' Available', options, on_change=disable_analysis, key='multi_x_cols')
@@ -145,6 +166,12 @@ if True:
         if 'All' in x_cols:
             x_cols=x_cols+list(model_df.columns)
             draw_search=True
+        if 'All-Corn' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'corn' in c]
+            draw_search=True
+        if 'All-Wheat' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'wheat' in c]
+            draw_search=True            
         if 'All-Stock to use' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'stock to use' in c]
             draw_search=True
@@ -295,7 +322,7 @@ if True:
                 if draw_search:
                     with col_search:
                         df_search = pd.DataFrame({'Selection':x_cols})
-                        grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=20,pre_selected_rows=[])
+                        grid_response_search = uc.aggrid_var_search(df_search, rows_per_page=50,pre_selected_rows=[])
                     with col_buttons:
                         add_but = st.form_submit_button("Add to selection")
                         sub_but = st.form_submit_button("Remove from list", on_click=clear_x_selection)
@@ -313,7 +340,7 @@ if True:
 
                 with col_selected:
                     df_selected = pd.DataFrame({'Selection':st.session_state['col_selection']})
-                    grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=20) 
+                    grid_response_selected = uc.aggrid_var_selected(df_selected, rows_per_page=50) 
                     df_x_cols_selected=pd.DataFrame(grid_response_selected['selected_rows'])
 
                     if sub_but:
@@ -421,7 +448,7 @@ if True:
                     if sp_add_pred:
                         sp_pred_size = st.number_input('Prediction Size',1,100,10,1)
 
-        st.button('Get Latest File', on_click=func_reset)        
+        # st.button('Get Latest File', on_click=func_reset)
 
 
 
