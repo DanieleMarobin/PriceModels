@@ -145,8 +145,6 @@ if True:
     options = list(model_df.columns)
     today_index=model_df.index[-1]
 
-
-
 # Filters and Settings
 if True:
     col_y_sel, col_x_sel= st.columns([1,3])
@@ -287,23 +285,6 @@ if True:
                 for a in ChatGPT_selection:
                     st.text(a)
 
-                # st.write('Request Time:', dt.now())
-                # prompts_n=[]
-                # for r in ChatGPT_requests:
-                #     prompts_n.append(len(r))
-
-                # st.write('Prompts Lenghts:')
-                # st.write(prompts_n)
-
-                # st.write('ChatGPT Question:')
-                # st.write(ChatGPT_requests)
-
-                # st.write('Columns Extraction')            
-                # st.write(gpt_cols_extraction)
-
-                # st.write('Correctly identified columns')            
-                # st.write(gpt_cols)
-
     # If 'chat_gpt' picks up something, put it into the search to decide if we want to add it or not to the final selection
     if len(st.session_state['chatgpt_selection'])>0:
         x_cols=x_cols+st.session_state['chatgpt_selection']
@@ -363,7 +344,8 @@ if True:
 
         with st.expander('Analysis Selection',expanded=True):
             sy_analysis = st.checkbox('Scatter Matrix (only Y-axis)',True)
-            sm_analysis = st.checkbox('Scatter Matrix',False)
+            # sm_analysis = st.checkbox('Scatter Matrix',False)
+            sm_analysis = False
             hm_analysis = st.checkbox('Heat Map',False)
             sp_analysis = st.checkbox('Detailed Scatter Plots',False)
 
@@ -447,10 +429,6 @@ if True:
                     sp_add_pred = st.checkbox('Add Prediction', True, key='sp_add_pred')
                     if sp_add_pred:
                         sp_pred_size = st.number_input('Prediction Size',1,100,10,1)
-
-        # st.button('Get Latest File', on_click=func_reset)
-
-
 
 # Get selected Variables for settings or from memory (x_cols) and sort them
 if True:
@@ -645,7 +623,6 @@ if ((sp_analysis) & (len(x_cols)>0) & (st.session_state['run_analysis'])):
                                 colors.append(trace.line.color)
                             else:
                                 colors.append(trace.marker.color)
-                            # st.write(trace)
 
                     r_sq={'trace':[], 'r-squared':[], 'p-values':[], 'prediction':[]}
                     for i, tm in enumerate(all_models): # tm: Trendline Model

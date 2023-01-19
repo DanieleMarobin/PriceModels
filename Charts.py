@@ -245,12 +245,8 @@ def add_today(fig, df, x_col, y_col, today_idx, size=10, color='red', symbol='st
     if model is None:    
         y = df.loc[today_idx][y_col]
     else:
-        pred_df=sm.add_constant(df).loc[today_idx][['const',x_col]]
+        pred_df=sm.add_constant(df, has_constant='add').loc[today_idx][['const',x_col]]
         y=model.predict(pred_df)[0]
-        # print('model.params', model.params)
-        # print('pred_df', pred_df)
-        # print('prediction -------------->', model.predict(pred_df)[0])
-        # return True
     
     y_str = 'Y: '+ y_col +' %{y:.2f}'
     x_str = 'X: '+ x_col +' %{x:.2f}'

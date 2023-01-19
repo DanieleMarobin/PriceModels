@@ -8,7 +8,6 @@ import concurrent.futures
 import sympy as sym
 import re
 
-
 def get_data():
     PM_DIR = 'Data/Models/Price Models/'
     file_name = PM_DIR+'df_model_all.csv'
