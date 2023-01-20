@@ -25,7 +25,6 @@ if True:
 
     def y_col_change():
         st.session_state['run_analysis']=False
-        st.session_state['y_col_custom']=''
 
     def var_builder_change():
         # st.session_state['text_x_cols_custom']= ' '.join(st.session_state['x_cols_custom_builder']) # good
@@ -38,7 +37,6 @@ if True:
 
     def y_col_custom_change():
         st.session_state['run_analysis']=False
-        st.session_state['y_col']=''
 
     def func_reset():
         if ('df_model_all' in st.session_state):
@@ -122,7 +120,6 @@ with st.expander('Time Frame', expanded=False):
     with col1:
         st.write('#')
         all_options = st.checkbox("All Months", True, key='all_report_months', on_change=disable_analysis)
-
     with col2:
         options=list(set(df_model_all.index.month))
         options.sort()
