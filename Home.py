@@ -90,7 +90,7 @@ if True:
     if 'col_selection' not in st.session_state:
         st.session_state['col_selection']=[]
     if 'chatgpt_key' not in st.session_state:
-        st.session_state['chatgpt_key']=gd.read_csv('Data/ChatGPT/Info.txt').columns[0]
+        st.session_state['chatgpt_key']=gd.read_csv('Data/ChatGPT/ChatGPT_Info.txt').columns[0]
     if 'chatgpt_run' not in st.session_state:
         st.session_state['chatgpt_run']=False
     if 'chatgpt_selection' not in st.session_state:
