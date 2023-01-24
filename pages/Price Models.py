@@ -15,6 +15,24 @@ if True:
     import GDrive as gd
     import Charts as uc
     import func as fu
+    import Prices as up
+
+# Tests
+if True:
+    service = gd.build_service()
+    cloud_map_dict=up.get_cloud_sec_map(service=service)
+
+    sel_sec=up.select_securities(ticker_and_letter='w n', cloud_map_dict=cloud_map_dict)
+    st.write('len(sec_list):', len(sel_sec))
+
+    sec_df= up.read_security_list(sel_sec, parallel='thread')
+    st.write('len(sec_df):', len(sec_df))
+
+    st.write(list(sec_df.keys()))
+
+    st.write(sec_df['w n_2020'])
+
+
 
 # Functions and Callbacks
 if True:
@@ -98,7 +116,7 @@ if True:
     if 'ChatGPT_request' not in st.session_state:
         st.session_state['ChatGPT_request']=[]
 
-    st.set_page_config(page_title='Price Models',layout='wide',initial_sidebar_state='expanded')
+
     st.markdown("### Price Models")
     st.markdown("---")
     
