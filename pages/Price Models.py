@@ -18,7 +18,7 @@ if True:
     import Prices as up
 
 # Tests
-if True:
+if False:
     service = gd.build_service()
     cloud_map_dict=up.get_cloud_sec_map(service=service)
 
