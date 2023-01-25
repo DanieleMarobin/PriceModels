@@ -1,18 +1,57 @@
+'''
+https://docs.bokeh.org/en/test/docs/reference/models/widgets/inputs.html#bokeh.models.MultiSelect
+
+'''
+
 import streamlit as st
-from bokeh.models.widgets import MultiSelect
-from bokeh.layouts import column
+from bokeh.models import CustomJS, MultiSelect
+from streamlit_bokeh_events import streamlit_bokeh_events
 
-# Create a list of options for the MultiSelect widget
-options = ['Option 1', 'Option 2', 'Option 3']
-options = [f'Option {i}' for i in range(10)]
+import Prices as up
+import Charts as uc
+import GDrive as gd
 
-# Create the MultiSelect widget
-multiselect = MultiSelect(title="Select Options:", value=[], options=options, size = 10)
+# Preliminaries
+if True:
+    service = gd.build_service()
 
-# Use st.bokeh_chart to render the widget in the Streamlit app
-# st.bokeh_chart(column(multiselect))
-st.bokeh_chart(multiselect)
+    if 'cloud_map_dict' not in st.session_state:
+        st.session_state['cloud_map_dict']=up.get_cloud_sec_map(service=service)
+        
 
-# Get the selected options from the MultiSelect widget
-selected_options = multiselect.value
-st.write("Selected options:", selected_options)
+if True:
+    cloud_map_dict=st.session_state['cloud_map_dict']
+    options=list(cloud_map_dict.keys())
+    sel_sec = st.selectbox('Ticker',['']+options,  key='y_col')
+
+
+if sel_sec != '':
+    col1, col2 = st.columns([5,1])
+
+    with col1:
+        # sel_sec=up.select_securities(ticker_and_letter='w n', cloud_map_dict=cloud_map_dict)
+        # st.write('len(sec_list):', len(sel_sec))
+
+        # sec_df= up.read_security_list(sel_sec, parallel='thread')
+        # st.write('len(sec_df):', len(sec_df))
+
+        # st.write(list(sec_df.keys()))
+        # st.write(sec_df['w n_2020'])
+
+        df=up.read_security(sec=sel_sec)
+        
+        fig = uc.chart_security_Ohlc(df)
+        fig.update_layout(height=750)
+        st.plotly_chart(fig,use_container_width=True, )
+
+    with col2:
+        # Create a list of options for the MultiSelect widget
+        st.write('#')
+        st.write('#')
+        options = [f'{i}' for i in range(2024,1959,-1)]
+        pre_selection=[f'{i}' for i in range(2024,2017,-1)]
+
+        # Create the MultiSelect widget
+        bokeh_multiselect = MultiSelect(title="", value=pre_selection, options=options, size = 40, width =100)
+        bokeh_multiselect.js_on_change("value",CustomJS(code='document.dispatchEvent(new CustomEvent("GET_OPTIONS", {detail: this.value}));'))
+        selected_options = streamlit_bokeh_events(bokeh_multiselect,events="GET_OPTIONS",key='bokeh_multiselect_on_change', override_height=750, debounce_time=0, refresh_on_update=False)

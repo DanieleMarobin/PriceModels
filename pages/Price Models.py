@@ -7,7 +7,7 @@ if True:
     
     import streamlit as st
     from bokeh.models import CustomJS, RadioButtonGroup
-    from streamlit_bokeh_events import streamlit_bokeh_events    
+    from streamlit_bokeh_events import streamlit_bokeh_events
     import plotly.express as px
     import plotly.graph_objects as go
 
@@ -15,25 +15,7 @@ if True:
     import GDrive as gd
     import Charts as uc
     import func as fu
-    import Prices as up
-
-# Tests
-if False:
-    service = gd.build_service()
-    cloud_map_dict=up.get_cloud_sec_map(service=service)
-
-    sel_sec=up.select_securities(ticker_and_letter='w n', cloud_map_dict=cloud_map_dict)
-    st.write('len(sec_list):', len(sel_sec))
-
-    sec_df= up.read_security_list(sel_sec, parallel='thread')
-    st.write('len(sec_df):', len(sec_df))
-
-    st.write(list(sec_df.keys()))
-
-    st.write(sec_df['w n_2020'])
-
-
-
+    
 # Functions and Callbacks
 if True:
     def send_GPT_request_click(simple_chat):        
@@ -223,10 +205,11 @@ if True:
         if True:
             print('-----------------------------------')
 
-            LABELS = ["Voice Search:", "Speak", "Clear"]
+            LABELS = ["Clear","Speak"]
 
             radio_button_group = RadioButtonGroup(labels=LABELS, active=0)
-            radio_button_group.js_on_click(CustomJS(code="""        
+            radio_button_group.js_on_click(CustomJS(code=
+            """        
                 console.log('radio_button_group: active=' + this.active, this.toString())
 
                 if (this.active==1)
@@ -251,14 +234,14 @@ if True:
                     }
                     recognition.start();
                 }
-                else if (this.active==2)
+                else if (this.active==0)
                 {
                     var value = "Clear"
                     document.dispatchEvent(new CustomEvent("GET_TEXT", {detail: value}));
                 }        
             """))
 
-            voice_recognition_results = streamlit_bokeh_events(radio_button_group,events="GET_TEXT",key='hard_issue', override_height=37,debounce_time=0)
+            voice_recognition_results = streamlit_bokeh_events(radio_button_group,events="GET_TEXT",key='hard_issue', override_height=37,debounce_time=0, refresh_on_update=False)
 
             voice_request=''
             if voice_recognition_results:

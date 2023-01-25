@@ -216,6 +216,10 @@ def sorted_scatter_chart(df, y_col, N_col_subplots=5, marker_color='blue', add_t
     return fig
 
 
+def chart_security_Ohlc(df):
+    fig = go.Figure(data=[go.Ohlc(x=df.index, open=df['open_price'], high=df['high_price'], low=df['low_price'], close=df['close_price'])])
+    fig.update_layout(xaxis_rangeslider_visible=False)
+    return fig
 
 
 def get_plotly_colorscales():
