@@ -17,28 +17,30 @@ if True:
 
     if 'cloud_map_dict' not in st.session_state:
         st.session_state['cloud_map_dict']=up.get_cloud_sec_map(service=service)
-        
+    if 'seas_dict' not in st.session_state:
+        st.session_state['seas_dict']=[]
 
-if True:
     cloud_map_dict=st.session_state['cloud_map_dict']
+        
+# Controls
+if True:
+    
     options=list(cloud_map_dict.keys())
-    sel_sec = st.selectbox('Ticker',['']+options,  key='y_col')
+    sec_selection = st.selectbox('Ticker',['']+options,  key='y_col')
 
 
-if sel_sec != '':
+if sec_selection != '':
     col1, col2 = st.columns([5,1])
 
-    with col1:
-        # sel_sec=up.select_securities(ticker_and_letter='w n', cloud_map_dict=cloud_map_dict)
-        # st.write('len(sec_list):', len(sel_sec))
-
-        # sec_df= up.read_security_list(sel_sec, parallel='thread')
-        # st.write('len(sec_df):', len(sec_df))
-
+    with col1:        
+        sel_sec=up.select_securities(ticker_and_letter=up.info_ticker_and_letter(sec_selection) , cloud_map_dict=cloud_map_dict)
+        sec_dfs= up.read_security_list(sel_sec, parallel='thread')
+        st.session_state['seas_dict']=sec_dfs
+        print(len(sec_dfs))
         # st.write(list(sec_df.keys()))
         # st.write(sec_df['w n_2020'])
 
-        df=up.read_security(sec=sel_sec)
+        df=list(sec_dfs.values())[20]
         
         fig = uc.chart_security_Ohlc(df)
         fig.update_layout(height=750)
