@@ -246,7 +246,7 @@ if True:
 
 # Results visualization
 if True:
-    def heat_map_var_months(model_df, y_cols=['a_price_c '], top_n = 40, months=list(range(1,13)), cols_excluded=[], parallel=None, max_workers=None, show=False):
+    def heat_map_var_months(model_df, y_cols=['c a'], top_n = 40, months=list(range(1,13)), cols_excluded=[], parallel=None, max_workers=None, show=False):
         """
         1 'heat_map' for each item in 'y_cols'
         """
@@ -281,14 +281,18 @@ if True:
 
             if show:
                 color_scales = uc.get_plotly_colorscales()
+                sorted_cols=['all','M 05','M 06','M 07','M 08','M 09','M 10','M 11','M 12','M 01','M 02','M 03','M 04']
+
                 # Heat-Map
                 c=color_scales['RdBu-sequential']
                 abs_max=heat_map_df['value'].abs().max() # so the positives are Blue and the negatives are red
-                fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, format_labels = '%{z:.1f}', title=y, range_color=(-abs_max,abs_max), tickangle=-90)
+                # fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value', sort_by='all', transpose=True, color_continuous_scale=c, format_labels = '%{z:.1f}', title=y, range_color=(-abs_max,abs_max), tickangle=-90)
+                fig=uc.chart_heat_map(heat_map_df,sorted_cols=sorted_cols,title=y+ ' (r-squared)', x_col='report',y_col='v1',z_col='value', sort_by='all_abs', transpose=False, color_continuous_scale=color_scales['RdBu-sequential'], range_color=(-abs_max,abs_max), format_labels = '%{z:.1f}') #,tickangle=-90
                 fig.show('browser')
 
                 # Heat-Map Differences
-                fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value',subtract='all', abs=True, sort_by='all',  transpose=True, color_continuous_scale=c,range_color=(-20,20), format_labels = '%{z:.1f}', title=y, tickangle=-90)
+                # fig=uc.chart_heat_map(heat_map_df,x_col='report',y_col='v1',z_col='value',subtract='all', abs=True, sort_by='all',  transpose=True, color_continuous_scale=c,range_color=(-20,20), format_labels = '%{z:.1f}', title=y, tickangle=-90)
+                fig=uc.chart_heat_map(heat_map_df,sorted_cols=sorted_cols,title=y+ ' (r-squared monthly variation)',x_col='report',y_col='v1',z_col='value',subtract='all', abs=True, sort_by='all_abs',  transpose=False, color_continuous_scale=color_scales['RdBu-sequential'],range_color=(-20,20), format_labels = '%{z:.1f}')
                 fig.show('browser')
 
             fo[y]=heat_map_df
