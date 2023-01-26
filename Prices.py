@@ -6,6 +6,7 @@ import sympy as sym
 
 import concurrent.futures
 import GDrive as gd
+import GLOBAL as GV
 
 SEC_DIR = 'Data/Securities/'
 SEC_MAP_PATH = 'Data/Search_Indices/GDrive_Securities_index.csv'
@@ -96,6 +97,45 @@ if True:
         df=gd.read_csv(file,parse_dates=['start','end'], dayfirst=True, index_col='security')
         return df
 
+# Securities elaborations
+if True:
+    def create_seas_dict(sec_dfs,col='close_price', ref_year=None, seas_interval=None):
+        '''
+        sec_dfs = {'w n_2020':df}
+
+        Reminder - In C# to solve 29 Feb issue I did:
+            year = base_timeline[i].Year + years_offset;
+            month = base_timeline[i].Month;
+            day = base_timeline[i].Day;
+            if (month == 2 && day == 29 && !DateTime.IsLeapYear(year)) { day = 28; }    
+
+        '''
+        if ref_year is None:
+            ref_year=dt.today().year
+        if seas_interval is None:
+            seas_interval=[dt.today()-pd.DateOffset(months=6), dt.today()+pd.DateOffset(months=6)]
+
+        dfs=[]
+
+        for sec, df in sec_dfs.items():
+            year=info_maturity(sec).year
+            offset = ref_year-year
+            interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
+
+            df['sec']=sec
+            df['year']=year
+
+            mask=(df.index>=interval[0]) & (df.index<=interval[1])
+
+            dfs.append(df[mask][['year','sec',col]])
+
+        df=pd.concat(dfs)
+
+        df=add_seas_day(df, ref_year_start= seas_interval[0])
+
+        df=df.pivot(index='seas_day',columns='year',values=col)
+        df=df.interpolate(method='polynomial', order=0, limit_area='inside')        
+        return df
 
 # get Info
 if True:
@@ -133,6 +173,34 @@ if True:
 
 # Accessories
 if True:
+    def add_seas_day(df, ref_year_start= dt.today(), date_col=None):
+        if date_col==None:
+            df['seas_day'] = [seas_day(d,ref_year_start) for d in df.index]
+        else:
+            df['seas_day'] = [seas_day(d,ref_year_start) for d in df[date_col]]
+        return df        
+
+    def seas_day(date, ref_year_start= dt(GV.CUR_YEAR,1,1)):
+        """
+        'seas_day' is the X-axis of the seasonal plot:
+                - it makes sure to include 29 Feb
+                - it is very useful in creating weather windows
+        """
+
+        start_idx = 100 * ref_year_start.month + ref_year_start.day
+        date_idx = 100 * date.month + date.day
+
+        if (start_idx<300):
+            if (date_idx>=start_idx):
+                return dt(GV.LLY, date.month, date.day)
+            else:
+                return dt(GV.LLY+1, date.month, date.day)
+        else:
+            if (date_idx>=start_idx):
+                return dt(GV.LLY-1, date.month, date.day)
+            else:
+                return dt(GV.LLY, date.month, date.day)
+
     def month_from_letter(letter):
         if letter=='f':
             return 1
