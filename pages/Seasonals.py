@@ -50,11 +50,11 @@ if sec_selection != '':
             st.session_state['seas_df']=up.create_seas_dict(sec_dfs)
             seas_df=st.session_state['seas_df']
 
-    col1, col2 = st.columns([5,1])
-    with col2:
+    col1, col2, col3 = st.columns([12,0.2,1])
+    with col3:
         # Create a list of options for the MultiSelect widget
         # st.write('#')
-        st.write('#')
+        # st.write('#')
         options = list(seas_df.columns)
         options.sort()
         options.reverse()
@@ -63,7 +63,7 @@ if sec_selection != '':
         # Create the MultiSelect widget   
         pre_selection=options[0: min(20,len(options))]
 
-        bokeh_multiselect = MultiSelect(title="Years", value=pre_selection, options=options, size = 40, width =100)
+        bokeh_multiselect = MultiSelect(value=pre_selection, options=options, size = 45, width =80)
         bokeh_multiselect.js_on_change("value", CustomJS(args=dict(xx='Hello Daniele'), code='console.log(xx.toString());document.dispatchEvent(new CustomEvent("GET_OPTIONS", {detail: this.value}));'))                
         sel_years = streamlit_bokeh_events(bokeh_multiselect,events="GET_OPTIONS",key='bokeh_multiselect_on_change', override_height=750, debounce_time=200, refresh_on_update=False)
 
@@ -84,8 +84,10 @@ if sec_selection != '':
             id=traces.index(str(dt.today().year))
             fig.data[id].update(line=dict(width=3, color='red'))
 
-        fig.update_layout(height=750, showlegend=False)
-        st.plotly_chart(fig,use_container_width=True)
+        fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
+        fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))
+
+        st.plotly_chart(fig,use_container_width=True, config={'scrollZoom': True, 'displayModeBar':False})
 
     
     if st.session_state['re_run']:
