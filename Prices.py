@@ -247,7 +247,8 @@ if True:
         if ref_year is None:
             ref_year=dt.today().year
         if seas_interval is None:
-            seas_interval=[dt.today()-pd.DateOffset(months=6), dt.today()+pd.DateOffset(months=6)]
+            seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=6)]
+            print(seas_interval)
 
         dfs=[]
 
