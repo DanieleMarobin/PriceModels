@@ -13,13 +13,13 @@ SEC_MAP_PATH = 'Data/Search_Indices/GDrive_Securities_index.csv'
 SEC_MAP_NAME = 'GDrive_Securities_index.csv'
 SEC_MAP_ID = '1eZ4FkRcW2JwS6i1LST5U4jqTRtQk701p' # id of the file mapping {name:id} for the folder 'Data/Securities'
 
-# Find securities
+# Select/Find securities
 if True:
     def get_cloud_sec_map(cloud_map_id=SEC_MAP_ID, service=None):
         cloud_map = gd.get_GDrive_map_from_id(cloud_map_id, service=service)
         return cloud_map
 
-    def select_securities(ticker=None, ticker_and_letter=None, cloud_map_id=None, cloud_map_dict=None, service=None):
+    def select_securities(ticker=None, ticker_and_letter=None, include_continuous=False, cloud_map_id=None, cloud_map_dict=None, service=None):
         folder=SEC_DIR
         if cloud_map_dict==None:
             cloud_map_id=SEC_MAP_ID
@@ -30,6 +30,13 @@ if True:
             fo = [sec for sec in all_files if info_ticker(sec)==ticker]
         elif ticker_and_letter is not None:
             fo = [sec for sec in all_files if info_ticker_and_letter(sec)==ticker_and_letter]
+        else:
+            fo = all_files
+
+
+        # Filter by continuous
+        if not include_continuous:
+            fo = [sec for sec in fo if (not info_continuous(sec))]
 
         fo = [sec.replace('.csv','') for sec in fo]
         return fo
@@ -99,7 +106,134 @@ if True:
 
 # Securities elaborations
 if True:
-    def create_seas_dict(sec_dfs,col='close_price', ref_year=None, seas_interval=None):
+    def calc_all_volatilities(df):
+        df=calc_volatility(df, vol_to_calc='implied_vol_dm', min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2)
+        df=calc_volatility(df, vol_to_calc='implied_vol_dm_call_25d', min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2)
+        df=calc_volatility(df, vol_to_calc='implied_vol_dm_put_25d', min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2)                
+        return df
+
+    def calc_volatility(df, vol_to_calc='implied_vol_dm', min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2):
+        '''
+            the below to calculate the 50 delta
+            vol_couples=[                 
+                            ['implied_vol_call_50d', 'implied_vol_put_50d'],
+                            ['implied_vol_hist_put', 'implied_vol_hist_call'],        
+                            ['bvol_50d'],
+                        ]
+
+            min_vol=0
+            max_vol=150
+
+            max_daily_ratio_move=2.0 
+                    - if the volatility moves more than double (or more than halve): discard
+            
+            holes_ratio_limit=1.2
+
+                    - the above 'holes_ratio_limit' is to reject 'data holes': a series that goes (12, 14, 13, 15, 0, 16, 17) clearly shows that the '0' is wrong
+                     so all the left and right ratios are calculated, and when they are bigger/smaller than 1.2, the '0' is replaced by the average of left and right values                    
+        '''
+
+        if vol_to_calc=='implied_vol_dm':
+            vol_couples=[ ['implied_vol_call_50d', 'implied_vol_put_50d'], ['implied_vol_hist_put', 'implied_vol_hist_call'], ['bvol_50d']]
+
+        if vol_to_calc=='implied_vol_dm_call_25d':
+            vol_couples=[ ['implied_vol_call_25d', 'implied_vol_call_25d'], ['bvol_call_25d', 'bvol_call_25d']]
+
+        if vol_to_calc=='implied_vol_dm_put_25d':
+            vol_couples=[ ['implied_vol_put_25d', 'implied_vol_put_25d'], ['bvol_put_25d', 'bvol_put_25d']]
+
+        vol_cols = sum(vol_couples, [])
+        df_vol=df[vol_cols]
+
+        mask=((df_vol<min_vol) & (max_vol<df_vol)) # removing values less than 0 and higher than 150%
+        df_vol[mask]=np.nan
+        new_cols=[] # one new column for each 'couple' and they are going to be called 0,1,2,etc 
+
+        for i, cols_couple in enumerate(vol_couples):
+            df_vol[i]=df_vol[cols_couple].mean(skipna=True, axis=1)
+            new_cols.append(i)
+
+        fvi=df_vol.first_valid_index()
+        lvi=df_vol.last_valid_index()
+
+        if fvi is None:
+            return df
+        
+        if lvi is None:
+            return df                
+
+        mask=((df_vol.index>=fvi) & (df_vol.index<=lvi))
+        ids= df_vol[mask].index # these are all the indices that will need to be filled
+
+
+        passes=['forward','backward']
+
+        for p in passes:
+            # Reverse the index for the 'backward' pass
+            if p=='backward':
+                ids=ids.sort_values(ascending=False)
+
+            # Initializing to NaN
+            df_vol[p]=np.nan
+
+            # Fill the first value
+            first_row=(df_vol.loc[ids[0]][new_cols])
+            mask=first_row.notna()
+            df_vol.loc[ids[0]][p] = first_row[mask].iloc[0] # by picking iloc[0] we are sure to get the first available with the priority assigned to the 'couples'
+
+            # Initialize the 'previous' for the following calc
+            previous=df_vol.loc[ids[0]][p]
+
+            # Filling everything else
+            for i in range(1,len(ids)):
+                row = df_vol.loc[ids[i]][new_cols] # full df row
+
+                list_diff= abs(row - previous)
+                list_diff= list_diff[list_diff.notna()]
+                if len(list_diff)==0:
+                    continue
+
+                # if there are competing values, pick the one with the smallest daily change
+                sel_col = list_diff.idxmin()
+
+                # check if the selected column has an acceptable ratio change, because above I only selected the smallest change, I didn't check if it makes sense (maybe they are ALL wrong)
+                list_ratio= abs(row/previous)
+
+                if (list_ratio[sel_col]>max_daily_ratio_move) or (list_ratio[sel_col]<(1.0/max_daily_ratio_move)):
+                    continue
+
+                df_vol.loc[ids[i]][p]=row[sel_col]
+                previous=row[sel_col]
+
+        # Counting the valid values and select the best
+        valid_values = df_vol[passes].notna().sum()
+        if valid_values['forward']>=valid_values['backward']:
+            df_vol[vol_to_calc]=df_vol['forward'] 
+        else:
+            df_vol[vol_to_calc]=df_vol['backward']
+
+
+        # Filling the holes (by changing the crazy values, so I start filtering the NaN)
+        mask=(df_vol[vol_to_calc].notna())
+        ids = df_vol.loc[mask].index
+
+        for i in range(1,len(ids)-1):
+            left_value=df_vol[vol_to_calc][i-1]
+            right_value=df_vol[vol_to_calc][i+1]
+
+            ratio_left = df_vol[vol_to_calc][i] / left_value
+            ratio_right = df_vol[vol_to_calc][i] / right_value
+
+            if ((ratio_left > holes_ratio_limit) and (ratio_right > holes_ratio_limit)):
+                df_vol[vol_to_calc][i]=(left_value+right_value)/2.0
+
+            if ((ratio_left < (1 / holes_ratio_limit)) and (ratio_right < (1 / holes_ratio_limit))):
+                df_vol[vol_to_calc][i]=(left_value+right_value)/2.0
+
+        df[vol_to_calc]=df_vol[vol_to_calc]
+        return df
+
+    def create_seas_dict(sec_dfs, col='close_price', ref_year=None, seas_interval=None):
         '''
         sec_dfs = {'w n_2020':df}
 
@@ -170,6 +304,13 @@ if True:
         letter= sec.split('_')[0][-1]
         month=month_from_letter(letter)
         return dt(year,month,1)
+    
+    def info_continuous(sec):
+        letter=info_ticker_and_letter(sec)[-1]
+        if letter=='1' or letter=='2':
+            return True            
+        return False
+
 
 # Accessories
 if True:
