@@ -70,6 +70,9 @@ if True:
     options=list(set([up.info_ticker_and_letter(s) for s in options]))
     options.sort()
     sec_selection = st.selectbox('Ticker',['']+options, options.index('w n')+1,  key='y_col', on_change=sec_selection_on_change)
+    expression = st.text_input('Expression', key='y_expression')
+    print('expression',expression)
+    st.write(expression)
 
     seas_interval=[dt.date(dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1)), dt.date(dt.today()+pd.DateOffset(months=6))]
     options=pd.date_range(seas_interval[0]-pd.DateOffset(months=18), seas_interval[1]+pd.DateOffset(months=18))
@@ -80,13 +83,13 @@ if True:
         var_selection = st.selectbox('Variable',var_options, var_options.index('close_price'),  key='var_selection', on_change=sec_selection_on_change)
 
 # Calculations
-if sec_selection != '':
+if (expression != ''):
     seas_df = st.session_state['seas_df']
 
     # Core Calc
     if len(seas_df)==0:
         with st.spinner('Downloading Data...'):
-            symbols=up.extract_symbols_from_expression(sec_selection)
+            symbols=up.extract_symbols_from_expression(expression)
             print('symbols',symbols)
             sel_sec=[]
             for s in symbols:
@@ -101,7 +104,7 @@ if sec_selection != '':
                     df=up.calc_volatility(df, vol_to_calc=var_selection, min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2)
 
             # pass the expression together with the 'sec_dfs'
-            st.session_state['seas_df']=up.create_seas_dict(sec_dfs, var_selection, seas_interval= [date_start, date_end])
+            st.session_state['seas_df']=up.create_seas_df(expression, sec_dfs, var_selection, seas_interval= [date_start, date_end])
             seas_df=st.session_state['seas_df']
 
     # Years Selection

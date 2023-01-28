@@ -3,6 +3,7 @@ from datetime import datetime as dt
 from calendar import isleap
 import pandas as pd
 import numpy as np
+from functools import reduce 
 import sympy as sym
 
 import concurrent.futures
@@ -234,32 +235,49 @@ if True:
         df[vol_to_calc]=df_vol[vol_to_calc]
         return df
 
-    def create_seas_dict(sec_dfs, col='close_price', ref_year=None, seas_interval=None):
+    def create_seas_df(expression, sec_dfs, col='close_price', ref_year=None, seas_interval=None):
+        '''
+        sec_dfs = {'w n_2020':df}
+        '''
         if ref_year is None:
             ref_year=dt.today().year
         if seas_interval is None:
-            seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=15)]
+            seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=6)]
 
-        dfs=[]
+        symbols=extract_symbols_from_expression(expression)
+        
+        df_list=[]
+        for symb in symbols:
+            dfs=[]
+            for sec, d in sec_dfs.items():
+                if info_ticker_and_letter(sec)==symb:
+                    df=d[:]
+                    year=info_maturity(sec).year
+                    offset = ref_year-year
+                    interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
 
-        for sec, d in sec_dfs.items():
-            df=d[:]
-            year=info_maturity(sec).year
-            offset = ref_year-year
-            interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
+                    df['sec']=sec
+                    df['year']=year
 
-            df['sec']=sec
-            df['year']=year
+                    mask=(df.index>=interval[0]) & (df.index<=interval[1])
+                    # df=df[mask][['year','sec',col]]
+                    df=df[mask][['year',col]]
+                    df=add_seas_timeline(df, offset)
+                    
+                    dfs.append(df)
 
-            mask=(df.index>=interval[0]) & (df.index<=interval[1])
-            df=df[mask][['year','sec',col]]
-            df=add_seas_timeline(df, offset)
-            
-            dfs.append(df)
+            df=pd.concat(dfs)
 
-        df=pd.concat(dfs)
+            df=df.rename(columns={col:symb})
+
+
+            df_list.append(df)
+        
+        df = reduce(lambda left, right: pd.merge(left , right,on = ["seas_day", "year"], how = "outer"),df_list)
+        df[col]=evaluate_expression(df,expression)
         df=df.pivot(index='seas_day',columns='year',values=col)  
-        df=df.interpolate(method='polynomial', order=0, limit_area='inside')     
+        df=df.interpolate(method='polynomial', order=0, limit_area='inside')
+
         return df
 
     def seas_avg(df):
