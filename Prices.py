@@ -248,10 +248,18 @@ if True:
             ref_year=dt.today().year
         if seas_interval is None:
             seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=6)]
-            print(seas_interval)
+
+        '''
+        modify the above line to have [28 Feb, 29 Feb] or [28 Feb, 28 Feb] depending on the case. But ALWAYS 366 days per year
+
+        in the below loop instead:
+            1) interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
+            2) mask=(df.index>=interval[0]) & (df.index<=interval[1])
+            3) change the index so that all have the exact same 'seas_interval' identical to above
+            (of course it is essential to make sure that they all have the same len!)
+        '''
 
         dfs=[]
-
         for sec, df in sec_dfs.items():
             year=info_maturity(sec).year
             offset = ref_year-year
