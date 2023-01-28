@@ -87,8 +87,6 @@ if sec_selection != '':
             st.session_state['seas_df']=up.create_seas_dict(sec_dfs, var_selection)
             seas_df=st.session_state['seas_df']
 
-
-
     col1, col2, col3 = st.columns([12,0.2,1])
     with col3:
         # Create a list of options for the MultiSelect widget
@@ -106,15 +104,17 @@ if sec_selection != '':
         bokeh_multiselect.js_on_change("value", CustomJS(args=dict(xx='Hello Daniele'), code='console.log(xx.toString());document.dispatchEvent(new CustomEvent("GET_OPTIONS", {detail: this.value}));'))                
         sel_years = streamlit_bokeh_events(bokeh_multiselect,events="GET_OPTIONS",key='bokeh_multiselect_on_change', override_height=750, debounce_time=200, refresh_on_update=False)
 
-
     if (sel_years is None) or len(sel_years)==0 or (st.session_state['re_run']):
         cols=[int(y) for y in pre_selection]
     else:
         cols=[int(y) for y in sel_years['GET_OPTIONS']]
 
+    with col1:
+        df=seas_df[cols]
+        df['mean']=df.mean(skipna=True, axis=1)
+        cols=['mean']+cols
 
-    with col1:        
-        fig = px.line(seas_df[cols])
+        fig = px.line(df[cols])
         fig.update_traces(line=dict(width=1))
 
         traces=[t['legendgroup'] for t in fig.data]
@@ -122,6 +122,10 @@ if sec_selection != '':
         if str(dt.today().year) in traces:
             id=traces.index(str(dt.today().year))
             fig.data[id].update(line=dict(width=3, color='red'))
+
+        if str('mean') in traces:
+            id=traces.index('mean')
+            fig.data[id].update(line=dict(width=3, color='black'))
 
         fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
         fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))

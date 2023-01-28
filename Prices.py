@@ -272,6 +272,8 @@ if True:
         df=df.interpolate(method='polynomial', order=0, limit_area='inside')        
         return df
 
+    def seas_avg(df):
+        return df
 # get Info
 if True:
     def info_ticker_and_letter(sec):
