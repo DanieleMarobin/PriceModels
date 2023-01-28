@@ -8,6 +8,7 @@ from datetime import datetime as dt
 import streamlit as st
 from bokeh.models import CustomJS, MultiSelect
 from streamlit_bokeh_events import streamlit_bokeh_events
+import pandas as pd
 
 import Prices as up
 import Charts as uc
@@ -22,6 +23,8 @@ def sec_selection_on_change():
     st.session_state['seas_df']=[]
     st.session_state['re_run']=True
 
+def format_timeframe_date(item):
+    return item.strftime("%b %Y")
 
 # Preliminaries
 if True:
@@ -67,6 +70,11 @@ if True:
     options.sort()
     sec_selection = st.selectbox('Ticker',['']+options, options.index('w n')+1,  key='y_col', on_change=sec_selection_on_change)
 
+    seas_interval=[dt.date(dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1)), dt.date(dt.today()+pd.DateOffset(months=6))]
+    options=pd.date_range(seas_interval[0]-pd.DateOffset(months=18), seas_interval[1]+pd.DateOffset(months=18))
+    date_start, date_end = st.select_slider('Seasonals Window', options=options, value=(seas_interval[0], seas_interval[1]), format_func=format_timeframe_date, on_change=sec_selection_on_change)
+    # date_start, date_end = st.select_slider('Seasonals Window', options=options, value=(options[0], options[-1]), on_change=sec_selection_on_change)
+
     with st.sidebar:
         var_selection = st.selectbox('Variable',var_options, var_options.index('close_price'),  key='var_selection', on_change=sec_selection_on_change)
 
@@ -83,8 +91,8 @@ if sec_selection != '':
             if '_vol_' in var_selection:
                 for key, df in sec_dfs.items():
                     df=up.calc_volatility(df, vol_to_calc=var_selection, min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2)
-                                
-            st.session_state['seas_df']=up.create_seas_dict(sec_dfs, var_selection)
+                  
+            st.session_state['seas_df']=up.create_seas_dict(sec_dfs, var_selection, seas_interval= [date_start, date_end])
             seas_df=st.session_state['seas_df']
 
     col1, col2, col3 = st.columns([12,0.2,1])
@@ -132,7 +140,6 @@ if sec_selection != '':
 
         st.plotly_chart(fig,use_container_width=True, config={'scrollZoom': True, 'displayModeBar':False})
 
-    
     if st.session_state['re_run']:
         st.session_state['re_run']=False        
         st.experimental_rerun()

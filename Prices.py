@@ -1,5 +1,6 @@
 import re
 from datetime import datetime as dt
+from calendar import isleap
 import pandas as pd
 import numpy as np
 import sympy as sym
@@ -234,33 +235,15 @@ if True:
         return df
 
     def create_seas_dict(sec_dfs, col='close_price', ref_year=None, seas_interval=None):
-        '''
-        sec_dfs = {'w n_2020':df}
-
-        Reminder - In C# to solve 29 Feb issue I did:
-            year = base_timeline[i].Year + years_offset;
-            month = base_timeline[i].Month;
-            day = base_timeline[i].Day;
-            if (month == 2 && day == 29 && !DateTime.IsLeapYear(year)) { day = 28; }    
-
-        '''
         if ref_year is None:
             ref_year=dt.today().year
         if seas_interval is None:
-            seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=6)]
-
-        '''
-        modify the above line to have [28 Feb, 29 Feb] or [28 Feb, 28 Feb] depending on the case. But ALWAYS 366 days per year
-
-        in the below loop instead:
-            1) interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
-            2) mask=(df.index>=interval[0]) & (df.index<=interval[1])
-            3) change the index so that all have the exact same 'seas_interval' identical to above
-            (of course it is essential to make sure that they all have the same len!)
-        '''
+            seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=15)]
 
         dfs=[]
-        for sec, df in sec_dfs.items():
+
+        for sec, d in sec_dfs.items():
+            df=d[:]
             year=info_maturity(sec).year
             offset = ref_year-year
             interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
@@ -269,15 +252,14 @@ if True:
             df['year']=year
 
             mask=(df.index>=interval[0]) & (df.index<=interval[1])
-
-            dfs.append(df[mask][['year','sec',col]])
+            df=df[mask][['year','sec',col]]
+            df=add_seas_timeline(df, offset)
+            
+            dfs.append(df)
 
         df=pd.concat(dfs)
-
-        df=add_seas_day(df, ref_year_start= seas_interval[0])
-
-        df=df.pivot(index='seas_day',columns='year',values=col)
-        df=df.interpolate(method='polynomial', order=0, limit_area='inside')        
+        df=df.pivot(index='seas_day',columns='year',values=col)  
+        df=df.interpolate(method='polynomial', order=0, limit_area='inside')     
         return df
 
     def seas_avg(df):
@@ -325,33 +307,32 @@ if True:
 
 # Accessories
 if True:
-    def add_seas_day(df, ref_year_start= dt.today(), date_col=None):
+    def add_seas_timeline(df, years_offset, date_col=None):
+        '''
+        timeline:
+            - original time line
+        fo:
+            - the 'common' seasonal timeline (the x-axis on the final 'seas' chart)
+        '''
+        fo = []
         if date_col==None:
-            df['seas_day'] = [seas_day(d,ref_year_start) for d in df.index]
+            timeline=df.index
         else:
-            df['seas_day'] = [seas_day(d,ref_year_start) for d in df[date_col]]
-        return df        
+            timeline=df[date_col]
 
-    def seas_day(date, ref_year_start= dt(GV.CUR_YEAR,1,1)):
-        """
-        'seas_day' is the X-axis of the seasonal plot:
-                - it makes sure to include 29 Feb
-                - it is very useful in creating weather windows
-        """
+        for d in timeline:
+            # print('timeline:', timeline)
+            year = d.year + years_offset
+            month = d.month
+            day = d.day
 
-        start_idx = 100 * ref_year_start.month + ref_year_start.day
-        date_idx = 100 * date.month + date.day
-
-        if (start_idx<300):
-            if (date_idx>=start_idx):
-                return dt(GV.LLY, date.month, date.day)
+            if (month == 2) and (day == 29) and (not isleap(year)):
+                fo.append(dt(year, month, 28, 12,00,00))
             else:
-                return dt(GV.LLY+1, date.month, date.day)
-        else:
-            if (date_idx>=start_idx):
-                return dt(GV.LLY-1, date.month, date.day)
-            else:
-                return dt(GV.LLY, date.month, date.day)
+                fo.append(dt(year, month, day))
+
+        df['seas_day'] = fo
+        return df
 
     def month_from_letter(letter):
         if letter=='f':
