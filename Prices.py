@@ -250,9 +250,9 @@ if True:
         for symb in symbols:
             dfs=[]
             for sec, d in sec_dfs.items():
-                if info_ticker_and_letter(sec)==symb:
+                if info_ticker_and_letter(sec)==symbol_no_offset(symb):
                     df=d[:]
-                    year=info_maturity(sec).year
+                    year=info_maturity(sec).year-symbol_offset(symb)
                     offset = ref_year-year
                     interval= [i - pd.DateOffset(years=offset) for i in seas_interval]
 
@@ -269,7 +269,6 @@ if True:
             df=pd.concat(dfs)
 
             df=df.rename(columns={col:symb})
-
 
             df_list.append(df)
         
@@ -417,6 +416,20 @@ if True:
 
 # Symbolic Expressions
 if True:
+    def symbol_no_offset(symbol):
+        offset_str=symbol[-1]
+        if offset_str.isnumeric():
+            return symbol[0:-1]
+        else:
+            return symbol
+        
+    def symbol_offset(symbol):
+        offset_str=symbol[-1]
+        if offset_str.isnumeric():
+            return int(offset_str)
+        else:
+            return 0
+        
     def dm_split(string, separators = "-+*/()'^."):
         result = re.split('|'.join(map(re.escape, separators)), string)
         return result

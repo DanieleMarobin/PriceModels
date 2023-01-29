@@ -70,7 +70,7 @@ if True:
     options=list(set([up.info_ticker_and_letter(s) for s in options]))
     options.sort()
     sec_selection = st.selectbox('Ticker',['']+options, options.index('w n')+1,  key='y_col', on_change=sec_selection_on_change)
-    expression = st.text_input('Expression', key='y_expression')
+    expression = st.text_input('Expression', key='y_expression', on_change=sec_selection_on_change)
     print('expression',expression)
     st.write(expression)
 
@@ -93,7 +93,7 @@ if (expression != ''):
             print('symbols',symbols)
             sel_sec=[]
             for s in symbols:
-                sel_sec=sel_sec+up.select_securities(ticker_and_letter=up.info_ticker_and_letter(s), cloud_map_dict=cloud_map_dict)
+                sel_sec=sel_sec+up.select_securities(ticker_and_letter=up.info_ticker_and_letter(up.symbol_no_offset(s)), cloud_map_dict=cloud_map_dict)
 
             # sec_dfs = {'w n_2020' : df}
             sec_dfs= up.read_security_list(sel_sec, parallel='thread')
