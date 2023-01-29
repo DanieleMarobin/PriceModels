@@ -38,7 +38,7 @@ if True:
 
         # Filter by continuous
         if not include_continuous:
-            fo = [sec for sec in fo if (not info_continuous(sec))]
+            fo = [sec for sec in fo if (not is_continuous(sec))]
 
         fo = [sec.replace('.csv','') for sec in fo]
         return fo
@@ -235,6 +235,25 @@ if True:
         df[vol_to_calc]=df_vol[vol_to_calc]
         return df
 
+    def sec_dfs_simple_sec(sec_dfs):
+        '''
+        sec_dfs = {'w n_2020':df}
+        '''
+        fo={}
+        sel_sec=[]
+        for sec, d in sec_dfs.items():
+            if (info_type(sec)!='future') and (info_maturity(sec)==0):
+                sel_sec.append(sec)
+        print(sel_sec)
+
+        for sec in sel_sec:
+            ticker=info_ticker(sec)
+            for y in set(sec_dfs[sec].index.year):
+                sec_dfs[ticker+'_'+str(y)]=sec_dfs[sec]
+            del sec_dfs[sec]
+            
+        return sec_dfs
+
     def create_seas_df(expression, sec_dfs, col='close_price', ref_year=None, seas_interval=None):
         '''
         sec_dfs = {'w n_2020':df}
@@ -243,7 +262,7 @@ if True:
             ref_year=dt.today().year
         if seas_interval is None:
             seas_interval=[dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1), dt.today()+pd.DateOffset(months=6)]
-
+        
         symbols=extract_symbols_from_expression(expression)
         
         df_list=[]
@@ -273,6 +292,7 @@ if True:
             df_list.append(df)
         
         df = reduce(lambda left, right: pd.merge(left , right,on = ["seas_day", "year"], how = "outer"),df_list)
+        
         df[col]=evaluate_expression(df,expression)
         df=df.pivot(index='seas_day',columns='year',values=col)  
         df=df.interpolate(method='polynomial', order=0, limit_area='inside')
@@ -283,6 +303,15 @@ if True:
         return df
 # get Info
 if True:
+    def info_type(sec):
+        
+        if is_fx(sec):
+            return 'fx'
+        elif 'fund' in sec:
+            return 'fund'
+        else:
+            return 'future'
+
     def info_ticker_and_letter(sec):
         split=sec.split('_')
         
@@ -301,24 +330,42 @@ if True:
         
         if len(split)==1:
             # there is no '_' in the security
-            return sec
-        
+            return split[0]
         if split[-1]=='0':
             return split[-2]
-        
+        if is_fx(sec):
+            return split[0]
+        if 'fund' in sec:
+            return split[0]
         else:
             return split[-2][0:-1]
 
     def info_maturity(sec):
-        year= int(sec.split('_')[1])
-        letter= sec.split('_')[0][-1]
-        month=month_from_letter(letter)
-        return dt(year,month,1)
+        split=sec.split('_')
+        if info_type(sec)=='future':
+            year= int(split[1])
+            letter= split[0][-1]
+            month=month_from_letter(letter)
+            return dt(year,month,1)
+        else:
+            year= int(split[1])
+            if year==0:
+                return 0
+            return dt(year,1,1)
     
-    def info_continuous(sec):
+    def is_continuous(sec):
         letter=info_ticker_and_letter(sec)[-1]
         if letter=='1' or letter=='2':
             return True            
+        return False
+    
+    def is_fx(sec):
+        fx=['eur','usd','gbp', 'chf']
+
+        for f in fx:
+            if f in sec:
+                return True
+                     
         return False
 
 

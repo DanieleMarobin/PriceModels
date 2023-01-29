@@ -71,7 +71,6 @@ if True:
     options.sort()
     sec_selection = st.selectbox('Ticker',['']+options, options.index('w n')+1,  key='y_col', on_change=sec_selection_on_change)
     expression = st.text_input('Expression', key='y_expression', on_change=sec_selection_on_change)
-    print('expression',expression)
     st.write(expression)
 
     seas_interval=[dt.date(dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1)), dt.date(dt.today()+pd.DateOffset(months=6))]
@@ -103,7 +102,7 @@ if (expression != ''):
                 for key, df in sec_dfs.items():
                     df=up.calc_volatility(df, vol_to_calc=var_selection, min_vol=0, max_vol=150, max_daily_ratio_move=2.0, holes_ratio_limit=1.2)
 
-            # pass the expression together with the 'sec_dfs'
+            sec_dfs=up.sec_dfs_simple_sec(sec_dfs)
             st.session_state['seas_df']=up.create_seas_df(expression, sec_dfs, var_selection, seas_interval= [date_start, date_end])
             seas_df=st.session_state['seas_df']
 
