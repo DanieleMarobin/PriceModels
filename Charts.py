@@ -21,9 +21,14 @@ from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode
 def seas_chart(df):
     cols=list(df.columns)
     col_ex = [c for c in cols if c != dt.today().year]
-    print(col_ex)
 
-    df['mean']=df[col_ex].mean(skipna=True, axis=1)
+    # The below is to avoid having a 'jumping' seasonal because certain series have less data
+    # it works, because 'seas df' has been calculated like this:
+    # df=df.interpolate(method='polynomial', order=0, limit_area='inside')    
+    df_mean=df[col_ex].dropna()
+    df_mean['mean']=df_mean[col_ex].mean(skipna=True, axis=1)
+    df=pd.concat([df,df_mean['mean']], axis=1)
+
     cols=['mean']+cols
 
     x=df.index
@@ -35,7 +40,12 @@ def seas_chart(df):
         else:
             sec_y=False
 
-        fig.add_trace(go.Scatter(x=x, y=df[s], name=s),secondary_y=sec_y)
+        year_str = '   <b>'+str(s)+'</b>'
+        y_str = '   %{y:.2f}'
+        x_str = '   %{x|%b %d}'
+        hovertemplate="<br>".join([year_str, y_str, x_str, "<extra></extra>"])
+
+        fig.add_trace(go.Scatter(x=x, y=df[s], name=s, hovertemplate=hovertemplate),secondary_y=sec_y)
 
     fig.update_traces(line=dict(width=1))
 
