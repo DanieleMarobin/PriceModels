@@ -18,18 +18,22 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, ColumnsAutoSizeMode, JsCode
 
-def seas_chart(df):
-    cols=list(df.columns)
-    col_ex = [c for c in cols if c != dt.today().year]
+def seas_chart(df, sel_cols=None):
+    if sel_cols is None:
+        cols=list(df.columns)
+    else:
+        cols=sel_cols[:]
+
+    cols_for_mean = [c for c in cols if ((c != dt.today().year) & (c != 'mean'))]
 
     # The below is to avoid having a 'jumping' seasonal because certain series have less data
     # it works, because 'seas df' has been calculated like this:
-    # df=df.interpolate(method='polynomial', order=0, limit_area='inside')    
-    df_mean=df[col_ex].dropna()
-    df_mean['mean']=df_mean[col_ex].mean(skipna=True, axis=1)
-    df=pd.concat([df,df_mean['mean']], axis=1)
-
-    cols=['mean']+cols
+    # df=df.interpolate(method='polynomial', order=0, limit_area='inside')
+    if ('mean' in cols):
+        df_mean=df[cols_for_mean].dropna()
+        df_mean['mean']=df_mean[cols_for_mean].mean(skipna=True, axis=1)
+        df=pd.concat([df,df_mean['mean']], axis=1)
+        # cols=['mean']+cols
 
     x=df.index
     fig = make_subplots(specs=[[{"secondary_y": True}]])

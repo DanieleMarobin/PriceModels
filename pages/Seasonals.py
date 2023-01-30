@@ -89,7 +89,7 @@ if (expression != ''):
     if len(seas_df)==0:
         with st.spinner('Downloading Data...'):
             symbols=up.extract_symbols_from_expression(expression)
-            print('symbols',symbols)
+            # print('symbols',symbols)
             sel_sec=[]
             for s in symbols:
                 sel_sec=sel_sec+up.select_securities(ticker_and_letter=up.info_ticker_and_letter(up.symbol_no_offset(s)), cloud_map_dict=cloud_map_dict)
@@ -115,21 +115,29 @@ if (expression != ''):
         options = list(seas_df.columns)
         options.sort()
         options.reverse()
-        options = [f'{o}' for o in options]
+        options = ['mean'] + [f'{o}' for o in options]
         
         # Create the MultiSelect widget   
-        pre_selection=options[0: min(20,len(options))]
+        pre_selection=options[1: min(20,len(options))]
         bokeh_multiselect = MultiSelect(value=pre_selection, options=options, size = 45, width =80)
         bokeh_multiselect.js_on_change("value", CustomJS(args=dict(xx='Hello Daniele'), code='console.log(xx.toString());document.dispatchEvent(new CustomEvent("GET_OPTIONS", {detail: this.value}));'))                
         sel_years = streamlit_bokeh_events(bokeh_multiselect,events="GET_OPTIONS",key='bokeh_multiselect_on_change', override_height=750, debounce_time=200, refresh_on_update=False)
+
     if (sel_years is None) or len(sel_years)==0 or (st.session_state['re_run']):
         cols=[int(y) for y in pre_selection]
     else:
-        cols=[int(y) for y in sel_years['GET_OPTIONS']]
+        cols=[]
+        for c in sel_years['GET_OPTIONS']:
+            if c.isnumeric():
+                cols.append(int(c))
+            else:
+                cols.append(c)
+        # cols=[int(y) for y in sel_years['GET_OPTIONS']]
+        # cols=[y for y in sel_years['GET_OPTIONS']]
 
     # Chart
     with col1:
-        fig = uc.seas_chart(seas_df[cols])
+        fig = uc.seas_chart(seas_df,cols)
         st.plotly_chart(fig,use_container_width=True, config={'scrollZoom': True, 'displayModeBar':False})
 
     # Re-Run hack
