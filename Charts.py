@@ -18,11 +18,16 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, ColumnsAutoSizeMode, JsCode
 
-def seas_chart(df, sel_cols=None):
-    if sel_cols is None:
+def seas_chart(df, seas_cols=None, seas_only=False):
+    '''
+    'seas_cols':
+        - to calculate the seasonal, include 'mean' in 'seas_cols'.
+        - the 'mean' will be calculated on all the years passes in 'seas_cols'
+    '''
+    if seas_cols is None:
         cols=list(df.columns)
     else:
-        cols=sel_cols[:]
+        cols=seas_cols[:]
 
     cols_for_mean = [c for c in cols if ((c != dt.today().year) & (c != 'mean'))]
 
@@ -38,7 +43,16 @@ def seas_chart(df, sel_cols=None):
     x=df.index
     fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    for s in cols:
+    cols_show=[]
+    if seas_only:
+        if 'mean' in cols:
+            cols_show=['mean']
+        if 2023 in cols:
+            cols_show= cols_show +[2023]        
+    else:
+        cols_show=cols[:]
+
+    for s in cols_show:
         if s=='mean':
             sec_y=True
         else:
@@ -65,28 +79,6 @@ def seas_chart(df, sel_cols=None):
 
     fig.update_xaxes(showgrid=False, zeroline=False)
     fig.update_yaxes(showgrid=False, zeroline=False)
-
-    fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
-    fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))
-    return fig
-
-def seas_chart_old(df):
-    cols=list(df.columns)
-    df['mean']=df.mean(skipna=True, axis=1)
-    cols=['mean']+cols
-
-    fig = px.line(df[cols])
-    fig.update_traces(line=dict(width=1))
-
-    traces=[t['legendgroup'] for t in fig.data]
-    
-    if str(dt.today().year) in traces:
-        id=traces.index(str(dt.today().year))
-        fig.data[id].update(line=dict(width=3, color='red'))
-
-    if str('mean') in traces:
-        id=traces.index('mean')
-        fig.data[id].update(line=dict(width=3, color='black'))
 
     fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
     fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))

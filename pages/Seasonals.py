@@ -19,6 +19,18 @@ if True:
     st.set_page_config(page_title='Seasonals',layout='wide',initial_sidebar_state='expanded')
 
 # Events
+def y_ticker_on_change():
+    st.session_state['bokeh_multiselect_on_change']=[]
+    st.session_state['seas_df']=[]
+    st.session_state['re_run']=True
+    st.session_state['y_expression']=''
+
+def y_expression_on_change():
+    st.session_state['bokeh_multiselect_on_change']=[]
+    st.session_state['seas_df']=[]
+    st.session_state['re_run']=True
+    st.session_state['y_ticker']=''
+
 def sec_selection_on_change():
     st.session_state['bokeh_multiselect_on_change']=[]
     st.session_state['seas_df']=[]
@@ -69,10 +81,14 @@ if True:
     options=up.select_securities(include_continuous=False, cloud_map_dict=cloud_map_dict)
     options=list(set([up.info_ticker_and_letter(s) for s in options]))
     options.sort()
-    sec_selection = st.selectbox('Ticker',['']+options, options.index('w n')+1,  key='y_col', on_change=sec_selection_on_change)
-    expression = st.text_input('Expression', key='y_expression', on_change=sec_selection_on_change)
-    st.write(expression)
 
+    col1, col2 = st.columns([1,1])
+    with col1:
+        # ticker_selection = st.selectbox('Ticker',['']+options, options.index('c z')+1,  key='y_ticker', on_change=y_ticker_on_change)
+        ticker_selection = st.selectbox('Ticker',['']+options, key='y_ticker', on_change=y_ticker_on_change)
+    with col2:
+        expression_selection = st.text_input('Custom Expression: (s n - s x), (w z - c z), any function', key='y_expression', on_change=y_expression_on_change)
+ 
     seas_interval=[dt.date(dt.today()-pd.DateOffset(months=6)+pd.DateOffset(days=1)), dt.date(dt.today()+pd.DateOffset(months=6))]
     options=pd.date_range(seas_interval[0]-pd.DateOffset(months=18), seas_interval[1]+pd.DateOffset(months=18))
     date_start, date_end = st.select_slider('Seasonals Window', options=options, value=(seas_interval[0], seas_interval[1]), format_func=format_timeframe_date, on_change=sec_selection_on_change)
@@ -82,6 +98,13 @@ if True:
         var_selection = st.selectbox('Variable',var_options, var_options.index('close_price'),  key='var_selection', on_change=sec_selection_on_change)
 
 # Calculations
+expression=''
+
+if ticker_selection!='':
+    expression=ticker_selection
+elif expression_selection!='':
+    expression=expression_selection
+
 if (expression != ''):
     seas_df = st.session_state['seas_df']
 
@@ -107,37 +130,29 @@ if (expression != ''):
             seas_df=st.session_state['seas_df']
 
     # Years Selection
-    col1, col2, col3 = st.columns([12,0.2,1])
+    col1, col2, col3 = st.columns([12,0.5,1.5])
     with col3:
-        # Create a list of options for the MultiSelect widget
-        # st.write('#')
-        # st.write('#')
+        seas_only = st.checkbox('Seas only')
         options = list(seas_df.columns)
         options.sort()
         options.reverse()
         options = ['mean'] + [f'{o}' for o in options]
         
         # Create the MultiSelect widget   
-        pre_selection=options[1: min(20,len(options))]
-        bokeh_multiselect = MultiSelect(value=pre_selection, options=options, size = 45, width =80)
+        pre_selection=options[0: min(20,len(options))]
+        bokeh_multiselect = MultiSelect(value=pre_selection, options=options, size = 40, width =100)
         bokeh_multiselect.js_on_change("value", CustomJS(args=dict(xx='Hello Daniele'), code='console.log(xx.toString());document.dispatchEvent(new CustomEvent("GET_OPTIONS", {detail: this.value}));'))                
         sel_years = streamlit_bokeh_events(bokeh_multiselect,events="GET_OPTIONS",key='bokeh_multiselect_on_change', override_height=750, debounce_time=200, refresh_on_update=False)
 
     if (sel_years is None) or len(sel_years)==0 or (st.session_state['re_run']):
-        cols=[int(y) for y in pre_selection]
+        cols=[y for y in pre_selection]
     else:
-        cols=[]
-        for c in sel_years['GET_OPTIONS']:
-            if c.isnumeric():
-                cols.append(int(c))
-            else:
-                cols.append(c)
-        # cols=[int(y) for y in sel_years['GET_OPTIONS']]
-        # cols=[y for y in sel_years['GET_OPTIONS']]
+        cols=[y for y in sel_years['GET_OPTIONS']]
 
     # Chart
+    seas_cols=[int(x) if x.isnumeric() else x for x in cols]
     with col1:
-        fig = uc.seas_chart(seas_df,cols)
+        fig = uc.seas_chart(seas_df, seas_cols, seas_only)
         st.plotly_chart(fig,use_container_width=True, config={'scrollZoom': True, 'displayModeBar':False})
 
     # Re-Run hack
