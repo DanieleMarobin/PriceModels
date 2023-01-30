@@ -129,26 +129,7 @@ if (expression != ''):
 
     # Chart
     with col1:
-        df=seas_df[cols]
-        df['mean']=df.mean(skipna=True, axis=1)
-        cols=['mean']+cols
-
-        fig = px.line(df[cols])
-        fig.update_traces(line=dict(width=1))
-
-        traces=[t['legendgroup'] for t in fig.data]
-        
-        if str(dt.today().year) in traces:
-            id=traces.index(str(dt.today().year))
-            fig.data[id].update(line=dict(width=3, color='red'))
-
-        if str('mean') in traces:
-            id=traces.index('mean')
-            fig.data[id].update(line=dict(width=3, color='black'))
-
-        fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
-        fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))
-
+        fig = uc.seas_chart(seas_df[cols])
         st.plotly_chart(fig,use_container_width=True, config={'scrollZoom': True, 'displayModeBar':False})
 
     # Re-Run hack

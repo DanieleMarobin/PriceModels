@@ -9,12 +9,74 @@ import inspect
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+import warnings # supress warnings
+warnings.filterwarnings('ignore')
 
 import plotly.graph_objects as go
 import plotly.express as px
 
 from plotly.subplots import make_subplots
 from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode, DataReturnMode, ColumnsAutoSizeMode, JsCode
+
+def seas_chart(df):
+    cols=list(df.columns)
+    col_ex = [c for c in cols if c != dt.today().year]
+    print(col_ex)
+
+    df['mean']=df[col_ex].mean(skipna=True, axis=1)
+    cols=['mean']+cols
+
+    x=df.index
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    for s in cols:
+        if s=='mean':
+            sec_y=True
+        else:
+            sec_y=False
+
+        fig.add_trace(go.Scatter(x=x, y=df[s], name=s),secondary_y=sec_y)
+
+    fig.update_traces(line=dict(width=1))
+
+    traces=[t['name'] for t in fig.data]
+
+    if str(dt.today().year) in traces:
+        id=traces.index(str(dt.today().year))
+        fig.data[id].update(line=dict(width=3, color='red'))
+
+    if str('mean') in traces:
+        id=traces.index('mean')
+        fig.data[id].update(line=dict(width=3, color='black'))
+
+    fig.update_xaxes(showgrid=False, zeroline=False)
+    fig.update_yaxes(showgrid=False, zeroline=False)
+
+    fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
+    fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))
+    return fig
+
+def seas_chart_old(df):
+    cols=list(df.columns)
+    df['mean']=df.mean(skipna=True, axis=1)
+    cols=['mean']+cols
+
+    fig = px.line(df[cols])
+    fig.update_traces(line=dict(width=1))
+
+    traces=[t['legendgroup'] for t in fig.data]
+    
+    if str(dt.today().year) in traces:
+        id=traces.index(str(dt.today().year))
+        fig.data[id].update(line=dict(width=3, color='red'))
+
+    if str('mean') in traces:
+        id=traces.index('mean')
+        fig.data[id].update(line=dict(width=3, color='black'))
+
+    fig.update_layout(height=750, showlegend=False, xaxis=dict(title=None), yaxis=dict(title=None))
+    fig.update_layout(margin=dict(l=50, r=0, t=0, b=20))
+    return fig
 
 
 def chart_heat_map(heat_map_df, x_col,y_col,z_col,range_color=None, add_mean=False, sort_by=None, abs=False, subtract=None, simmetric_sort=False, transpose=False, drop_cols=[], color_continuous_scale='RdBu', format_labels=None, title=None,tickangle=None, sorted_cols=[]):
