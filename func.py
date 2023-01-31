@@ -35,8 +35,10 @@ def dm_split(string, separators = "-+*/()'^."):
 def dm_replace(string, args_dict={}):
     for k, v in args_dict.items():
         string = string.replace(k, v)
-
     return string
+
+def reverse_dict(original_dict):
+    return {v: k for k, v in original_dict.items()}
 
 def extract_symbols_from_expression(expression):
     # the symbolic package doesn't like spaces in symbols

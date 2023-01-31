@@ -8,7 +8,6 @@ import sympy as sym
 
 import concurrent.futures
 import GDrive as gd
-import GLOBAL as GV
 
 SEC_DIR = 'Data/Securities/'
 SEC_MAP_PATH = 'Data/Search_Indices/GDrive_Securities_index.csv'
@@ -458,7 +457,7 @@ if True:
         letter=split[0][-1]    
         relative_year=int(split[1])-base_year
 
-        return ticker+letter+str(relative_year)  
+        return ticker+letter+str(relative_year)
 
 
 # Symbolic Expressions
