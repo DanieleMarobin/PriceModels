@@ -150,7 +150,7 @@ if True:
     with col_y_sel:
         y_col = st.selectbox('Target (y)',['']+options, on_change=y_col_change, key='y_col')
     with col_x_sel:
-        special_vars=['All','All-Corn','All-Wheat','All-Stock to use','All-Ending Stocks','All-Yields']
+        special_vars=['All','All-Corn','All-Wheat','All-Stock to use','All-Ending Stocks','All-Yields','All-Funds']
         options=special_vars[:]
         options=options+list(model_df.columns)
         x_cols = st.multiselect('Variables (X) - '+ str(len(options)) + ' Available', options, on_change=disable_analysis, key='multi_x_cols')
@@ -159,7 +159,8 @@ if True:
         draw_selected=False        
 
         if 'All' in x_cols:
-            x_cols=x_cols+list(model_df.columns)
+            # x_cols=x_cols+list(model_df.columns)
+            x_cols=x_cols+[c for c in model_df.columns if 'month' not in c]
             draw_search=True
         if 'All-Corn' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'corn' in c]
@@ -176,6 +177,9 @@ if True:
         if 'All-Yields' in x_cols:
             x_cols=x_cols+[c for c in model_df.columns if 'yield' in c]    
             draw_search=True
+        if 'All-Funds' in x_cols:
+            x_cols=x_cols+[c for c in model_df.columns if 'fund' in c]
+            draw_search=True            
 
     # Custom Variables
     with st.expander('Custom Variables', expanded=False):
