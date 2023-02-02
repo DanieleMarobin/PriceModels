@@ -179,7 +179,7 @@ if True:
 
         # Expressions
         expressions=[]
-        expressions=expressions+[{'symbols':['c k','c n'],'expression':'c k-c n '}]         
+        # expressions=expressions+[{'symbols':['c k','c n'],'expression':'c k-c n '}]
         
         fo['first_training_date']=first_training_date
         fo['last_training_date']=last_training_date
