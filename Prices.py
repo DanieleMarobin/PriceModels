@@ -300,12 +300,14 @@ if True:
 
     def seas_avg(df):
         return df
+
 # get Info
 if True:
-    def info_type(sec):
-        
+    def info_type(sec):        
         if is_fx(sec):
             return 'fx'
+        elif sec[0:3]=='geo':
+            return 'geograin'
         elif 'fund' in sec:
             return 'fund'
         else:
@@ -336,6 +338,8 @@ if True:
             return split[0]
         if 'fund' in sec:
             return split[0]
+        if sec[0:3] == 'geo':
+            return split[0]        
         else:
             return split[-2][0:-1]
 
@@ -365,8 +369,7 @@ if True:
             if f in sec:
                 return True
                      
-        return False
-
+        return False    
 
 # Accessories
 if True:
