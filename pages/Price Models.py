@@ -1,3 +1,10 @@
+# Update the underlying data
+'''
+1) Open E:\grains trading\Streamlit\Monitor\HelloWorlds\Price_Models.ipynb
+2) Run cell with: df_model_all=mp.Get_Data_All_Parallel(overwrite=True)
+3) Check updates this one: E:\grains trading\Streamlit\Monitor\Data\Models\Price Models\Price_Models_df_model_all.csv
+'''
+
 # Imports
 if True:
     from datetime import datetime as dt
